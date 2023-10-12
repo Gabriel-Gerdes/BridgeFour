@@ -46,7 +46,7 @@ void loop(void) {
 
   float reading = analogRead(THERMISTORPIN);
   
-  int SwitchValue = digitalRead(SLEEPSWITCH)?;
+  _isSleep = digitalRead(SLEEPSWITCH)?;
   
   float mesuredResistance = CalculateResistance(reading);
 
