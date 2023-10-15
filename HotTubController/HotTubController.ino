@@ -1,4 +1,4 @@
-#define SERIESRESISTOR 12700
+ #define SERIESRESISTOR 12700
 #define THERMISTORPIN A0
 
 //Green Ground
@@ -31,32 +31,39 @@ enum HeatingMode {
 const int HEATERPIN = 2;
 const int SAFTEYPIN = 3;
 const int SLEEPSWITCH = 7;
-const long ACTION_INTERVAL = 1000;
+const long ACTION_INTERVAL = 1000000;  // using 1000000 for micros() overflow test, instead of 1000
 
 unsigned long _previousRunTime = 0;
 unsigned long _previousRunCycles = 0;
 
-float _emaMeasuredResistance = 0.0f;
+float _emaResistance = 0.0f;
 float _alpha = 0.0001f; 
 // This is the smoothing factor for our Exponential Moving Average (ema) formula. This
 // A higher alpha value will result in a smoother EMA, but it will also be less 
 // responsive to changes in the measured resistance.
 
+float _emaSafteyResistance = 0.0f;
+float _alphaSaftey = 0.0004f; 
 // currently we are taking about 4.5 samples per millisecond (6.5 when grounded) from the thermistor 
-// so a small alpha of 0.001f responds from a full open to full closed in about 3 seconds,
+// alpha of 0.001f responds from a full open to full closed in about 3 seconds,
 // where as an alpha of 0.0001f takes about 30 seconds for a similar response. 
+String _fileCompiledInfo;
 
 bool _isSleep = false;
 bool _deadManSwitch = true;
 HeatingMode _heatingStatus = NEITHER;
 
+// enable soft reset
+void(* resetFunc) (void) = 0;
+
 void setup(void) {
-  // Check your searial rates at: https://wormfood.net/avrbaudcalc.php
-  // Uno typically has a 16Mhz crystal
+  // Check serial rates at: https://wormfood.net/avrbaudcalc.php
+  // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
   Serial.begin(250000);  //Serial.begin(9600); 
   pinMode(HEATERPIN, OUTPUT);
   pinMode(SAFTEYPIN, OUTPUT);
   pinMode(SLEEPSWITCH, INPUT_PULLUP);
+  _fileCompiledInfo = outFileCompiledInfo();
 }
 
 void loop(void) {
@@ -71,15 +78,21 @@ void loop(void) {
   float measuredResistance = CalculateResistance(reading);
 
    // Calculate the EMA of the measured resistance.
-  _emaMeasuredResistance = (1.0f - _alpha) * _emaMeasuredResistance + _alpha * measuredResistance;
-
-  // Consider: It may be prudent to use a larger alpha for the ema associated with the safteyCheck to get a faster responce.
-  SafteyCheck(_emaMeasuredResistance);
-  unsigned long currentRunTime = millis(); 
+  _emaResistance = CalculateExponentialMovingAverage(_alpha,_emaResistance, measuredResistance);
+  // _emaSafteyResistance is much more responsive than _emaResistance
+  _emaSafteyResistance = CalculateExponentialMovingAverage(_alphaSaftey,_emaSafteyResistance, measuredResistance);
+ 
+  SafteyCheck(_emaSafteyResistance);
+  //unsigned long currentRunTime = millis(); 
+  
+  //for testing time overflows by using micros() as it oveflows in 70 minutes   
+  unsigned long currentRunTime = micros();
+  
   // The number of milliseconds since board's last reset
-  // Unsigned Long can not exceed 4,294,967,295 
-
-  if ((currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
+  // Unsigned Long is 32 bit and overflows after 4,294,967,295  (2^32-1)
+  // millis overflows ever 49.8 days
+  // an unsigned negitive value is a positive value
+  if ((unsigned long)(currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
     // only take actions if ACTION_INTERVAL has passed
     if (_deadManSwitch = false) {
       float targetHi;
@@ -99,15 +112,19 @@ void loop(void) {
     logOuput.concat(",\"Measured Resistance\":\"");
     logOuput.concat(measuredResistance);
     logOuput.concat("\",\"Ema Resistance\":\"");
-    logOuput.concat(_emaMeasuredResistance);
+    logOuput.concat(_emaResistance);
+    logOuput.concat("\",\"Ema Saftey Resistance\":\"");
+    logOuput.concat(_emaSafteyResistance);
     logOuput.concat("\",\"RunDurration\":");
     logOuput.concat(currentRunTime - _previousRunTime);
     logOuput.concat(",\"RunCycles\":");
     logOuput.concat( _previousRunCycles);
-    logOuput.concat("}");
+    logOuput.concat(",\"FileCompiledInfo\":\"");
+    logOuput.concat(_fileCompiledInfo);
+    logOuput.concat("\"}");
 
-    // Out to log (sd card or wifi ftp + serial monitor?)
     Serial.println(logOuput);
+    // TODO: Add write out to log (sd card or wifi ftp)
 
     // Reset previous run variables
     _previousRunCycles = 0;
@@ -115,7 +132,21 @@ void loop(void) {
   } else {
     //execute only on non-action loop
     _previousRunCycles++;
+    if (_previousRunCycles > (unsigned long) (pow(2,8*sizeof(_previousRunCycles))-2)){
+      //if _previousRunCycles is about to overflow then reset board
+      Serial.println("Rebooting prior to _previousRunCycles overflow");
+      resetFunc();
+    }
   }
+}
+
+String outFileCompiledInfo() {
+  String FileInfo = (__FILE__); // filename
+  FileInfo.concat("_");
+  FileInfo.concat(__DATE__); // date file compiled
+  FileInfo.concat("_");
+  FileInfo.concat(__TIME__);  
+  return FileInfo ;
 }
 
 void SafteyCheck(float measuredResistance) {
@@ -123,6 +154,11 @@ void SafteyCheck(float measuredResistance) {
   {
     ThrowDeadMansSwitch();
   }
+}
+
+float CalculateExponentialMovingAverage(float alpha, float currentEma, float value) {
+  float ema = (1.0f - alpha) * currentEma + alpha * value;
+  return ema;
 }
 
 float CalculateResistance(float reading) {
@@ -153,11 +189,11 @@ void SetHeatingStatus(float targetHi, float targetLow) {
   switch (_heatingStatus) {
     case NEITHER:
     case HEATING:
-      if (_emaMeasuredResistance < targetHi)
+      if (_emaResistance < targetHi)
         _heatingStatus = COOLING;
       break;
     case COOLING:
-      if (_emaMeasuredResistance > targetLow)
+      if (_emaResistance > targetLow)
         _heatingStatus = HEATING;
       break;
   }
