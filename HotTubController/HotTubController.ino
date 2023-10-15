@@ -1,4 +1,4 @@
- #define SERIESRESISTOR 12700
+#define SERIESRESISTOR 12700
 #define THERMISTORPIN A0
 
 //Green Ground
@@ -56,6 +56,7 @@ HeatingMode _heatingStatus = NEITHER;
 // enable soft reset
 void(* resetFunc) (void) = 0;
 
+// Initilzation
 void setup(void) {
   // Check serial rates at: https://wormfood.net/avrbaudcalc.php
   // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
@@ -66,6 +67,7 @@ void setup(void) {
   _fileCompiledInfo = outFileCompiledInfo();
 }
 
+//Exectuion Loop
 void loop(void) {
   //Allways execute
   //TODO: Add checks against DeadMansSwitch
@@ -101,31 +103,7 @@ void loop(void) {
       SetHeatingStatus(targetHi, targetLow);
       SetHeater();
     }
-    
-    // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
-    // e.g.->  {"RunTime":1235,}
-    String logOuput = "{";
-    logOuput.concat("\"BootTime\":");
-    logOuput.concat(currentRunTime);
-    logOuput.concat(",\"A0_Reading\":");
-    logOuput.concat((unsigned long)(reading));
-    logOuput.concat(",\"Measured Resistance\":\"");
-    logOuput.concat(measuredResistance);
-    logOuput.concat("\",\"Ema Resistance\":\"");
-    logOuput.concat(_emaResistance);
-    logOuput.concat("\",\"Ema Saftey Resistance\":\"");
-    logOuput.concat(_emaSafteyResistance);
-    logOuput.concat("\",\"RunDurration\":");
-    logOuput.concat(currentRunTime - _previousRunTime);
-    logOuput.concat(",\"RunCycles\":");
-    logOuput.concat( _previousRunCycles);
-    logOuput.concat(",\"FileCompiledInfo\":\"");
-    logOuput.concat(_fileCompiledInfo);
-    logOuput.concat("\"}");
-
-    Serial.println(logOuput);
-    // TODO: Add write out to log (sd card or wifi ftp)
-
+    outReport(currentRunTime,measuredResistance);
     // Reset previous run variables
     _previousRunCycles = 0;
     _previousRunTime = currentRunTime ;
@@ -147,6 +125,28 @@ String outFileCompiledInfo() {
   FileInfo.concat("_");
   FileInfo.concat(__TIME__);  
   return FileInfo ;
+}
+
+void outReport(unsigned long runTime, float resistance){
+    
+    // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
+    // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
+    // Strings are a pain and memory hogs, so just don't use them if we don't need them
+    Serial.print("{");
+    Serial.print("\"RunTimeStamp\":");Serial.print((unsigned long)(runTime));
+    Serial.print("\"PreviousRunCompletionTime\":");Serial.print((unsigned long)(_previousRunTime));
+    // attributes that can be calculated from other attributes shouldn't be writtent to log 
+    //XXXX Serial.print(",\"RunDurration\":\"");Serial.print((unsigned long)(currentRunTime - _previousRunTime));
+    //XXXX Serial.print(",\"A0_Reading\":");Serial.print((unsigned long)(reading));
+    Serial.print(",\"MeasuredResistance\":\"");Serial.print(resistance);Serial.print("\"");
+    Serial.print(",\"EmaResistance\":\"");Serial.print(_emaResistance);Serial.print("\"");
+    Serial.print(",\"EmaSafteyResistance\":\"");Serial.print(_emaSafteyResistance);Serial.print("\"");
+    Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
+    Serial.print(",\"FileCompiledInfo\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+    Serial.println("}");
+
+    // TODO: Add write out to log (sd card or wifi ftp)
+
 }
 
 void SafteyCheck(float measuredResistance) {
