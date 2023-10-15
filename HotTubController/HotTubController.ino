@@ -37,12 +37,12 @@ unsigned long _previousRunTime = 0;
 unsigned long _previousRunCycles = 0;
 
 float _emaMeasuredResistance = 0.0f;
-float _alpha = 0.0002f; 
+float _alpha = 0.0001f; 
 // This is the smoothing factor for our Exponential Moving Average (ema) formula. This
 // A higher alpha value will result in a smoother EMA, but it will also be less 
 // responsive to changes in the measured resistance.
 
-// currently we are taking about 6.2 samples per millisecond from the thermistor
+// currently we are taking about 4.5 samples per millisecond (6.5 when grounded) from the thermistor 
 // so a small alpha of 0.001f responds from a full open to full closed in about 3 seconds,
 // where as an alpha of 0.0001f takes about 30 seconds for a similar response. 
 
