@@ -75,12 +75,6 @@ void loop(void) {
 
   // Consider: It may be prudent to use a larger alpha for the ema associated with the safteyCheck to get a faster responce.
   SafteyCheck(_emaMeasuredResistance);
-
-  //TODO: #2 Build an average of measuredResistance since _previousRunTime
-  //      Consider refactoring from a sample every second, to a FLIT filtered measurement, or and exponential moving average
-  //      so the only thing in the action part of loop would be reading user input and writting logs.
-  //      https://electronics.stackexchange.com/questions/30370/fast-and-memory-efficient-moving-average-calculation
-
   unsigned long currentRunTime = millis(); 
   // The number of milliseconds since board's last reset
   // Unsigned Long can not exceed 4,294,967,295 
