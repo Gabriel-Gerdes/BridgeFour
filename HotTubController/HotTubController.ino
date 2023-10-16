@@ -1,5 +1,6 @@
 #define SERIESRESISTOR 12700
-#define THERMISTORPIN A0
+#define THERMISTORPINPREHEATER A0
+#define THERMISTORPINPOSTHEATER A2
 
 //Green Ground
 //Red 5V
@@ -16,8 +17,8 @@ enum TargetTempature {
   //Consider: As we are using an EMA for temperature measurements means we can likely
   // narrow the band of active heating to 101-98
 
-  //Saftey Max, this can be lowered to 108
-  Saftey = 13589 //111
+  //Safety Max, this can be lowered to 108
+  Safety = 13589 //111
 };
 
 enum HeatingMode {
@@ -29,22 +30,24 @@ enum HeatingMode {
 //TODO: List
 //Add summer winter temp
 const int HEATERPIN = 2;
-const int SAFTEYPIN = 3;
+const int SafetyPIN = 3;
 const int SLEEPSWITCH = 7;
-const long ACTION_INTERVAL = 1000000;  // using 1000000 for micros() overflow test, instead of 1000
+const long ACTION_INTERVAL = 1000;
 
 unsigned long _previousRunTime = 0;
 unsigned long _previousRunCycles = 0;
 
-float _emaResistance = 0.0f;
-float _alpha = 0.0001f; 
+float _emaResistancePreHeater = 0.0f;
+float _emaResistancePostHeater = 0.0f;
+float _alpha = 0.001f; 
 // This is the smoothing factor for our Exponential Moving Average (ema) formula. This
 // A higher alpha value will result in a smoother EMA, but it will also be less 
 // responsive to changes in the measured resistance.
 
-float _emaSafteyResistance = 0.0f;
-float _alphaSaftey = 0.0004f; 
-// currently we are taking about 4.5 samples per millisecond (6.5 when grounded) from the thermistor 
+float _emaSafetyResistancePreHeater = 0.0f;
+float _emaSafetyResistancePostHeater = 0.0f;
+float _alphaSafety = 0.005f; 
+// currently we are calculating about 2 samples per millisecond (6.5 when grounded on one thermistor) from the thermistor 
 // alpha of 0.001f responds from a full open to full closed in about 3 seconds,
 // where as an alpha of 0.0001f takes about 30 seconds for a similar response. 
 String _fileCompiledInfo;
@@ -60,9 +63,9 @@ void(* resetFunc) (void) = 0;
 void setup(void) {
   // Check serial rates at: https://wormfood.net/avrbaudcalc.php
   // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
-  Serial.begin(250000);  //Serial.begin(9600); 
+  Serial.begin(1000000);  //Serial.begin(9600); 
   pinMode(HEATERPIN, OUTPUT);
-  pinMode(SAFTEYPIN, OUTPUT);
+  pinMode(SafetyPIN, OUTPUT);
   pinMode(SLEEPSWITCH, INPUT_PULLUP);
   _fileCompiledInfo = outFileCompiledInfo();
 }
@@ -71,24 +74,31 @@ void setup(void) {
 void loop(void) {
   //Allways execute
   //TODO: Add checks against DeadMansSwitch
-  float reading = analogRead(THERMISTORPIN);
+  float readingPreHeater = analogRead(THERMISTORPINPREHEATER);
+  float readingPostHeater = analogRead(THERMISTORPINPOSTHEATER);
+  
   //TODO: #3 handle common Thermistor Read errors 
-  //  - reading > 1018 :A a detached thermistor, but SERIESRESISTOR is still in place
-  //  - reading < 7 : thermistor is grounded or A0 is detached
-  //  - readings that frequently cycle from 0 through 1023 (oddly around 60 hz durring testing) 
+  //  - readingPreHeater > 1018 :A a detached thermistor, but SERIESRESISTOR is still in place
+  //  - readingPreHeater < 7 : thermistor is grounded or A0 is detached
+  //  - readingPreHeaters that frequently cycle from 0 through 1023 (oddly around 60 hz durring testing) 
   //    occures when A0 is connected, but not powered or grounded.
-  float measuredResistance = CalculateResistance(reading);
+  float measuredResistancePreHeater = CalculateResistance(readingPreHeater);
+  float measuredResistancePostHeater = CalculateResistance(readingPostHeater);
 
    // Calculate the EMA of the measured resistance.
-  _emaResistance = CalculateExponentialMovingAverage(_alpha,_emaResistance, measuredResistance);
-  // _emaSafteyResistance is much more responsive than _emaResistance
-  _emaSafteyResistance = CalculateExponentialMovingAverage(_alphaSaftey,_emaSafteyResistance, measuredResistance);
+  _emaResistancePreHeater = CalculateExponentialMovingAverage(_alpha,_emaResistancePreHeater, measuredResistancePreHeater);
+  _emaResistancePostHeater = CalculateExponentialMovingAverage(_alpha,_emaResistancePostHeater, measuredResistancePostHeater);
+  // _emaSafetyResistancePreHeater is much more responsive than _emaResistancePreHeater
+  _emaSafetyResistancePreHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePreHeater, measuredResistancePreHeater);
+  _emaSafetyResistancePostHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePostHeater, measuredResistancePostHeater);
  
-  SafteyCheck(_emaSafteyResistance);
+  SafetyCheck(_emaSafetyResistancePreHeater);
+  SafetyCheck(_emaSafetyResistancePostHeater);
   //unsigned long currentRunTime = millis(); 
   
-  //for testing time overflows by using micros() as it oveflows in 70 minutes   
-  unsigned long currentRunTime = micros();
+  unsigned long currentRunTime = millis(); // no need for this level of granularity -> micros();
+    //for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
+
   
   // The number of milliseconds since board's last reset
   // Unsigned Long is 32 bit and overflows after 4,294,967,295  (2^32-1)
@@ -103,7 +113,7 @@ void loop(void) {
       SetHeatingStatus(targetHi, targetLow);
       SetHeater();
     }
-    outReport(currentRunTime,measuredResistance);
+    outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater);
     // Reset previous run variables
     _previousRunCycles = 0;
     _previousRunTime = currentRunTime ;
@@ -112,7 +122,7 @@ void loop(void) {
     _previousRunCycles++;
     if (_previousRunCycles > (unsigned long) (pow(2,8*sizeof(_previousRunCycles))-2)){
       //if _previousRunCycles is about to overflow then reset board
-      Serial.println("Rebooting prior to _previousRunCycles overflow");
+      Serial.println("Rebooting prior to _previousRunCycles overflow, this should never happen");
       resetFunc();
     }
   }
@@ -127,43 +137,51 @@ String outFileCompiledInfo() {
   return FileInfo ;
 }
 
-void outReport(unsigned long runTime, float resistance){
+void outReport(unsigned long runTime, float resistancePre, float resistancePost ){
     
     // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
     // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
     // Strings are a pain and memory hogs, so just don't use them if we don't need them
     Serial.print("{");
-    Serial.print("\"RunTimeStamp\":");Serial.print((unsigned long)(runTime));
-    Serial.print("\"PreviousRunCompletionTime\":");Serial.print((unsigned long)(_previousRunTime));
+    Serial.print("\"Running\" : ");Serial.print((unsigned long)(runTime));
+    Serial.print(",\"LastRunTime\":");Serial.print((unsigned long)(_previousRunTime));
     // attributes that can be calculated from other attributes shouldn't be writtent to log 
     //XXXX Serial.print(",\"RunDurration\":\"");Serial.print((unsigned long)(currentRunTime - _previousRunTime));
-    //XXXX Serial.print(",\"A0_Reading\":");Serial.print((unsigned long)(reading));
-    Serial.print(",\"MeasuredResistance\":\"");Serial.print(resistance);Serial.print("\"");
-    Serial.print(",\"EmaResistance\":\"");Serial.print(_emaResistance);Serial.print("\"");
-    Serial.print(",\"EmaSafteyResistance\":\"");Serial.print(_emaSafteyResistance);Serial.print("\"");
+    //XXXX Serial.print(",\"A0_readingPreHeater\":");Serial.print((unsigned long)(readingPreHeater));
+    Serial.print(",\"PreHeatOhms\":\"");Serial.print(resistancePre);Serial.print("\"");
+    Serial.print(",\"PostHeatOhms\":\"");Serial.print(resistancePost);Serial.print("\"");
+    Serial.print(",\"PreHeatEmaOhms\":\"");Serial.print(_emaResistancePreHeater);Serial.print("\"");
+    Serial.print(",\"PostHeatEmaOhms\":\"");Serial.print(_emaResistancePostHeater);Serial.print("\"");
+    Serial.print(",\"PreSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePreHeater);Serial.print("\"");
+    Serial.print(",\"PostSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePostHeater);Serial.print("\"");
     Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
-    Serial.print(",\"FileCompiledInfo\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+    Serial.print(",\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
     Serial.println("}");
 
     // TODO: Add write out to log (sd card or wifi ftp)
 
 }
 
-void SafteyCheck(float measuredResistance) {
-  if (measuredResistance < Saftey)
+void SafetyCheck(float measuredResistance) {
+  if (measuredResistance < Safety)
   {
     ThrowDeadMansSwitch();
   }
 }
 
 float CalculateExponentialMovingAverage(float alpha, float currentEma, float value) {
-  float ema = (1.0f - alpha) * currentEma + alpha * value;
+  float ema = (1.0f - alpha) * currentEma +  alpha * value;
   return ema;
 }
 
-float CalculateResistance(float reading) {
-  float measuredResistance = SERIESRESISTOR / (float)((1023.0001 / reading)  - 1); // 10K / (1023/ADC - 1) 
-  // using 1023.0001 instead of 1023 in the formula has no effect on typical values, and avoids having to handle an INF
+float CalculateResistance(float readingHeater) {
+  // setting a cap on readingHeater of 1022 instead of 1023 to avoids having to handle an INF and OVF errors with our math  
+  float measuredResistance = 0.0f;
+  if ((readingHeater) < 1022.0f ) {
+    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
+  } else {
+    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022)  - 1.0); // 10K / ((1023/ADC) - 1) 
+  }
   return measuredResistance;
 }
 
@@ -181,7 +199,7 @@ void OutGetTargetTemp(float &targetHi, float &targetLow) {
 
 void ThrowDeadMansSwitch() {
   _deadManSwitch = false;
-  digitalWrite(SAFTEYPIN, _deadManSwitch);
+  digitalWrite(SafetyPIN, _deadManSwitch);
   TurnOffHeater();
 }
 
@@ -189,11 +207,11 @@ void SetHeatingStatus(float targetHi, float targetLow) {
   switch (_heatingStatus) {
     case NEITHER:
     case HEATING:
-      if (_emaResistance < targetHi)
+      if (_emaResistancePreHeater < targetHi)
         _heatingStatus = COOLING;
       break;
     case COOLING:
-      if (_emaResistance > targetLow)
+      if (_emaResistancePreHeater > targetLow)
         _heatingStatus = HEATING;
       break;
   }
