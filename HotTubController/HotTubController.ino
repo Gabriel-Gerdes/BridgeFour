@@ -21,6 +21,16 @@ enum TargetTempature {
   Safety = 13589 //111
 };
 
+// Alpha is the smoothing factor for our Exponential Moving Average (ema) formula.
+// EMA smooths our measured temp value to remove any noise from the signal.
+// A higher alpha value will result in a smoother EMA, but it will also be less 
+// responsive to changes in the measured resistance.
+// currently we are calculating about 2 samples per millisecond (6.5 when grounded on one thermistor) from the thermistor 
+// alpha of 0.001f responds from a full open to full closed in about 7 seconds,
+// where as an alpha of 0.0001f takes about 60 seconds for a similar response. 
+float _alpha = 0.001f; 
+float _alphaSafety = 0.005f; 
+
 enum HeatingMode {
   NEITHER,
   HEATING,
@@ -33,23 +43,16 @@ const int HEATERPIN = 2;
 const int SafetyPIN = 3;
 const int SLEEPSWITCH = 7;
 const long ACTION_INTERVAL = 1000;
+const long SAFETY_INTERVAL = 100;
 
 unsigned long _previousRunTime = 0;
 unsigned long _previousRunCycles = 0;
 
 float _emaResistancePreHeater = 0.0f;
 float _emaResistancePostHeater = 0.0f;
-float _alpha = 0.001f; 
-// This is the smoothing factor for our Exponential Moving Average (ema) formula. This
-// A higher alpha value will result in a smoother EMA, but it will also be less 
-// responsive to changes in the measured resistance.
-
 float _emaSafetyResistancePreHeater = 0.0f;
 float _emaSafetyResistancePostHeater = 0.0f;
-float _alphaSafety = 0.005f; 
-// currently we are calculating about 2 samples per millisecond (6.5 when grounded on one thermistor) from the thermistor 
-// alpha of 0.001f responds from a full open to full closed in about 3 seconds,
-// where as an alpha of 0.0001f takes about 30 seconds for a similar response. 
+
 String _fileCompiledInfo;
 
 bool _isSleep = false;
@@ -68,6 +71,16 @@ void setup(void) {
   pinMode(SafetyPIN, OUTPUT);
   pinMode(SLEEPSWITCH, INPUT_PULLUP);
   _fileCompiledInfo = outFileCompiledInfo();
+
+  // initialize digital pin LED_BUILTIN as an output. Onboard LED and D13 for Uno/Duo/Mega (all but Gemma and MKR100)
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // Get intial resistance values on initialization, 
+  // so we don't have to wait for the value to ramp up to valid values from 0
+  _emaResistancePreHeater = CalculateResistance(analogRead(THERMISTORPINPREHEATER));
+  _emaResistancePostHeater =  CalculateResistance(analogRead(THERMISTORPINPOSTHEATER));
+  _emaSafetyResistancePreHeater = _emaResistancePreHeater;
+  _emaSafetyResistancePostHeater = _emaResistancePostHeater;
 }
 
 //Exectuion Loop
@@ -80,8 +93,9 @@ void loop(void) {
   //TODO: #3 handle common Thermistor Read errors 
   //  - readingPreHeater > 1018 :A a detached thermistor, but SERIESRESISTOR is still in place
   //  - readingPreHeater < 7 : thermistor is grounded or A0 is detached
-  //  - readingPreHeaters that frequently cycle from 0 through 1023 (oddly around 60 hz durring testing) 
+  //  - readingPreHeaters that frequently cycle from 0 through 1023 
   //    occures when A0 is connected, but not powered or grounded.
+  //    might need to capture a min / max value between action cycles, and if the diff exceeds some threshold, throw deadman switch
   float measuredResistancePreHeater = CalculateResistance(readingPreHeater);
   float measuredResistancePostHeater = CalculateResistance(readingPostHeater);
 
@@ -91,20 +105,26 @@ void loop(void) {
   // _emaSafetyResistancePreHeater is much more responsive than _emaResistancePreHeater
   _emaSafetyResistancePreHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePreHeater, measuredResistancePreHeater);
   _emaSafetyResistancePostHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePostHeater, measuredResistancePostHeater);
- 
-  SafetyCheck(_emaSafetyResistancePreHeater);
-  SafetyCheck(_emaSafetyResistancePostHeater);
   //unsigned long currentRunTime = millis(); 
   
-  unsigned long currentRunTime = millis(); // no need for this level of granularity -> micros();
-    //for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
-
-  
+  unsigned long currentRunTime = millis(); 
   // The number of milliseconds since board's last reset
   // Unsigned Long is 32 bit and overflows after 4,294,967,295  (2^32-1)
   // millis overflows ever 49.8 days
   // an unsigned negitive value is a positive value
+  //for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
+  // no need for this level of granularity -> micros();
+
+  // Perform saftey checks more frequently than actions
+  if ((unsigned long)(currentRunTime - _previousRunTime) > (SAFETY_INTERVAL-1)) {
+   // only do safety checks if SAFETY_INTERVAL has passed
+    SafetyCheck(_emaSafetyResistancePreHeater);
+    SafetyCheck(_emaSafetyResistancePostHeater);  
+  }
+
+  // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((unsigned long)(currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
     if (_deadManSwitch = false) {
       float targetHi;
@@ -117,6 +137,7 @@ void loop(void) {
     // Reset previous run variables
     _previousRunCycles = 0;
     _previousRunTime = currentRunTime ;
+    
   } else {
     //execute only on non-action loop
     _previousRunCycles++;
@@ -125,6 +146,7 @@ void loop(void) {
       Serial.println("Rebooting prior to _previousRunCycles overflow, this should never happen");
       resetFunc();
     }
+
   }
 }
 
@@ -167,6 +189,7 @@ void SafetyCheck(float measuredResistance) {
   {
     ThrowDeadMansSwitch();
   }
+
 }
 
 float CalculateExponentialMovingAverage(float alpha, float currentEma, float value) {
@@ -180,7 +203,7 @@ float CalculateResistance(float readingHeater) {
   if ((readingHeater) < 1022.0f ) {
     measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
   } else {
-    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022)  - 1.0); // 10K / ((1023/ADC) - 1) 
+    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022.0)  - 1.0); // 10K / ((1023/ADC) - 1) 
   }
   return measuredResistance;
 }
