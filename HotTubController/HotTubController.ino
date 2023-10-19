@@ -1,7 +1,21 @@
+//currently reporting levels are:
+// 0 = no reporting
+// 1 = typical reporting (Durring action)
+// 2 = frequent reporting (Durring safety check)
+// 3 = continious reporting (Every loop)
+#define REPORTINGLEVEL 1
+
 #define SERIESRESISTOR 12700
 #define THERMISTORPINPREHEATER A0
 #define THERMISTORPINPOSTHEATER A2
 
+#if (REPORTINGLEVEL !=0)
+enum ReportMessage {
+  MsgRoutine,
+  MsgErrorDeadMan,
+  MsgErrorRebootPriorToOverflow
+};
+#endif
 //Green Ground
 //Red 5V
 //White Analog
@@ -31,6 +45,8 @@ enum TargetTempature {
 float _alpha = 0.001f; 
 float _alphaSafety = 0.005f; 
 
+// Conditional compilation arguments
+
 enum HeatingMode {
   NEITHER,
   HEATING,
@@ -42,6 +58,7 @@ enum HeatingMode {
 const int HEATERPIN = 2;
 const int SafetyPIN = 3;
 const int SLEEPSWITCH = 7;
+
 const long ACTION_INTERVAL = 1000;
 const long SAFETY_INTERVAL = 100;
 
@@ -89,7 +106,6 @@ void loop(void) {
   //TODO: Add checks against DeadMansSwitch
   float readingPreHeater = analogRead(THERMISTORPINPREHEATER);
   float readingPostHeater = analogRead(THERMISTORPINPOSTHEATER);
-  
   //TODO: #3 handle common Thermistor Read errors 
   //  - readingPreHeater > 1018 :A a detached thermistor, but SERIESRESISTOR is still in place
   //  - readingPreHeater < 7 : thermistor is grounded or A0 is detached
@@ -116,38 +132,68 @@ void loop(void) {
   // no need for this level of granularity -> micros();
 
   // Perform saftey checks more frequently than actions
+  #if (REPORTINGLEVEL !=0)
+    ReportMessage msgToReport = MsgRoutine;
+  #else
+    
+  #endif
+  
   if ((unsigned long)(currentRunTime - _previousRunTime) > (SAFETY_INTERVAL-1)) {
    // only do safety checks if SAFETY_INTERVAL has passed
     SafetyCheck(_emaSafetyResistancePreHeater);
     SafetyCheck(_emaSafetyResistancePostHeater);  
+    #if (REPORTINGLEVEL !=0)
+      if (_deadManSwitch == true){
+        msgToReport = MsgErrorDeadMan;
+      }
+    #endif
+    #if (REPORTINGLEVEL == 2)
+      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,MsgErrorDeadMan);
+    #endif
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((unsigned long)(currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
-    if (_deadManSwitch = false) {
+    if (_deadManSwitch == false) {
       float targetHi;
       float targetLow;
       OutGetTargetTemp(targetHi, targetLow);
       SetHeatingStatus(targetHi, targetLow);
       SetHeater();
+      #if (REPORTINGLEVEL != 0)
+        msgToReport=MsgRoutine;
+      #endif
     }
-    outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater);
+    
+    #if (REPORTINGLEVEL == 1)
+      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+    #elif (REPORTINGLEVEL == 0)
+      // just an I'm alive written out to serial if we don't have any reporting
+      // Serial.print(_previousRunCycles);
+      //Serial.print(":");
+      Serial.println(micros());
+    #endif
+
     // Reset previous run variables
     _previousRunCycles = 0;
-    _previousRunTime = currentRunTime ;
-    
+    _previousRunTime = currentRunTime;  
   } else {
     //execute only on non-action loop
     _previousRunCycles++;
     if (_previousRunCycles > (unsigned long) (pow(2,8*sizeof(_previousRunCycles))-2)){
       //if _previousRunCycles is about to overflow then reset board
-      Serial.println("Rebooting prior to _previousRunCycles overflow, this should never happen");
+      #if (REPORTINGLEVEL !=0)
+        msgToReport=MsgErrorRebootPriorToOverflow;
+        outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+      #endif
       resetFunc();
     }
-
   }
+  #if (REPORTINGLEVEL == 3)
+    outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+  #endif
 }
 
 String outFileCompiledInfo() {
@@ -159,13 +205,29 @@ String outFileCompiledInfo() {
   return FileInfo ;
 }
 
-void outReport(unsigned long runTime, float resistancePre, float resistancePost ){
+#if (REPORTINGLEVEL !=0)
+void outReport(unsigned long runTime, float resistancePre, float resistancePost,ReportMessage customStatusMessage ){
     
     // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
     // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
     // Strings are a pain and memory hogs, so just don't use them if we don't need them
     Serial.print("{");
+    Serial.print(",\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+    Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
     Serial.print("\"Running\" : ");Serial.print((unsigned long)(runTime));
+
+    switch (customStatusMessage) {
+      case MsgRoutine:
+        Serial.print("\"Status\" : ");Serial.print("Routine");
+      case MsgErrorDeadMan:
+        Serial.print("\"Status\" : ");Serial.print("Error:Deadman Switch Thrown");
+        Serial.println("}");
+        break;
+      case MsgErrorRebootPriorToOverflow:
+        Serial.print("\"Status\" : ");Serial.print("Error:Rebooting prior to unexpected overflow");
+        Serial.println("}");
+        break;
+    }
     Serial.print(",\"LastRunTime\":");Serial.print((unsigned long)(_previousRunTime));
     // attributes that can be calculated from other attributes shouldn't be writtent to log 
     //XXXX Serial.print(",\"RunDurration\":\"");Serial.print((unsigned long)(currentRunTime - _previousRunTime));
@@ -176,13 +238,12 @@ void outReport(unsigned long runTime, float resistancePre, float resistancePost 
     Serial.print(",\"PostHeatEmaOhms\":\"");Serial.print(_emaResistancePostHeater);Serial.print("\"");
     Serial.print(",\"PreSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePreHeater);Serial.print("\"");
     Serial.print(",\"PostSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePostHeater);Serial.print("\"");
-    Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
-    Serial.print(",\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
     Serial.println("}");
 
     // TODO: Add write out to log (sd card or wifi ftp)
 
 }
+#endif
 
 void SafetyCheck(float measuredResistance) {
   if (measuredResistance < Safety)
