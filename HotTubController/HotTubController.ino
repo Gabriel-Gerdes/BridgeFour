@@ -1,10 +1,9 @@
+#define REPORTINGLEVEL 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
 // 2 = frequent reporting (Durring safety check)
 // 3 = continious reporting (Every loop)
-#define REPORTINGLEVEL 1
-
 #define SERIESRESISTOR 12700
 #define THERMISTORPINPREHEATER A0
 #define THERMISTORPINPOSTHEATER A2
@@ -132,23 +131,23 @@ void loop(void) {
   // no need for this level of granularity -> micros();
 
   // Perform saftey checks more frequently than actions
+
+  // Initialize msgToReport
   #if (REPORTINGLEVEL !=0)
     ReportMessage msgToReport = MsgRoutine;
-  #else
-    
   #endif
   
   if ((unsigned long)(currentRunTime - _previousRunTime) > (SAFETY_INTERVAL-1)) {
    // only do safety checks if SAFETY_INTERVAL has passed
     SafetyCheck(_emaSafetyResistancePreHeater);
-    SafetyCheck(_emaSafetyResistancePostHeater);  
+    // only after install -> SafetyCheck(_emaSafetyResistancePostHeater);  
     #if (REPORTINGLEVEL !=0)
-      if (_deadManSwitch == true){
+      if (_deadManSwitch == false){
         msgToReport = MsgErrorDeadMan;
       }
     #endif
     #if (REPORTINGLEVEL == 2)
-      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,MsgErrorDeadMan);
+      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
     #endif
   }
 
@@ -156,7 +155,7 @@ void loop(void) {
   if ((unsigned long)(currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
-    if (_deadManSwitch == false) {
+    if (_deadManSwitch != false) {
       float targetHi;
       float targetLow;
       OutGetTargetTemp(targetHi, targetLow);
@@ -212,19 +211,19 @@ void outReport(unsigned long runTime, float resistancePre, float resistancePost,
     // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
     // Strings are a pain and memory hogs, so just don't use them if we don't need them
     Serial.print("{");
-    Serial.print(",\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+    Serial.print("\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
     Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
-    Serial.print("\"Running\" : ");Serial.print((unsigned long)(runTime));
+    Serial.print(",\"Running\" : ");Serial.print((unsigned long)(runTime));
 
     switch (customStatusMessage) {
       case MsgRoutine:
-        Serial.print("\"Status\" : ");Serial.print("Routine");
+        Serial.print(",\"Status\"=");Serial.print("\"Routine\"");
       case MsgErrorDeadMan:
-        Serial.print("\"Status\" : ");Serial.print("Error:Deadman Switch Thrown");
+        Serial.print(",\"Status\"=");Serial.print("\"Error:Deadman Switch Thrown\"");
         Serial.println("}");
         break;
       case MsgErrorRebootPriorToOverflow:
-        Serial.print("\"Status\" : ");Serial.print("Error:Rebooting prior to unexpected overflow");
+        Serial.print(",\"Status\"=");Serial.print("\"Error:Rebooting prior to unexpected overflow\"");
         Serial.println("}");
         break;
     }
@@ -250,7 +249,6 @@ void SafetyCheck(float measuredResistance) {
   {
     ThrowDeadMansSwitch();
   }
-
 }
 
 float CalculateExponentialMovingAverage(float alpha, float currentEma, float value) {
