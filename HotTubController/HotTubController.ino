@@ -23,17 +23,17 @@ enum ReportMessage {
 
 enum TargetTempature {
   //Sleep
-  SleepHi = 24832,//85F
-  SleepLow = 27931, //80F
+  SleepHi = 85 // 24832 ohms  ,//85F
+  SleepLow = 80 // 27931 ohms, //80F
 
   //Active Heating
-  Hi = 17247, //101F
-  Low = 20649, //95F
+  Hi = 101 // 17247 ohms, //101F
+  Low = 97 //20649, //95F
   //Consider: As we are using an EMA for temperature measurements means we can likely
   // narrow the band of active heating to 101-98
 
   //Safety Max, this can be lowered to 108
-  Safety = 13589 //111
+  Safety = 108 // 13589 ohms //111F
 };
 
 // Alpha is the smoothing factor for our Exponential Moving Average (ema) formula.
@@ -57,7 +57,7 @@ enum HeatingMode {
 //TODO: List
 //Add summer winter temp
 const int HEATERPIN = 2;
-const int SafetyPIN = 3;
+const int SAFETYPIN = 3;
 const int SLEEPSWITCH = 7;
 
 const long ACTION_INTERVAL = 1000;
@@ -71,10 +71,10 @@ unsigned long _previousRunCycles = 0;
 //  float TemperatureExponentialMovingAverage;
 //  float TemperatureCumulativeAverage; // 
 //}
-  float _emaResistancePreHeater = 0.0f;
-  float _emaResistancePostHeater = 0.0f;
-  float _emaSafetyResistancePreHeater = 0.0f;
-  float _emaSafetyResistancePostHeater = 0.0f;
+  float _emaTemperaturePreHeater = 0.0f;
+  float _emaTemperaturePostHeater = 0.0f;
+  float _emaSafetyTemperaturePreHeater = 0.0f;
+  float _emaSafetyTemperaturePostHeater = 0.0f;
 
 String _fileCompiledInfo;
 
@@ -91,7 +91,7 @@ void setup(void) {
   // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
   Serial.begin(1000000);  //Serial.begin(9600); 
   pinMode(HEATERPIN, OUTPUT);
-  pinMode(SafetyPIN, OUTPUT);
+  pinMode(SAFETYPIN, OUTPUT);
   pinMode(SLEEPSWITCH, INPUT_PULLUP);
   _fileCompiledInfo = outFileCompiledInfo();
 
@@ -100,10 +100,10 @@ void setup(void) {
 
   // Get intial resistance values on initialization, 
   // so we don't have to wait for the value to ramp up to valid values from 0
-  _emaResistancePreHeater = CalculateResistance(analogRead(THERMISTORPINPREHEATER));
-  _emaResistancePostHeater =  CalculateResistance(analogRead(THERMISTORPINPOSTHEATER));
-  _emaSafetyResistancePreHeater = _emaResistancePreHeater;
-  _emaSafetyResistancePostHeater = _emaResistancePostHeater;
+  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(THERMISTORPINPREHEATER)));
+  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(THERMISTORPINPOSTHEATER)));
+  _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
+  _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
 }
 
 //Exectuion Loop
@@ -125,11 +125,11 @@ void loop(void) {
   float temperaturePostHeater = degree_f_from_resistance(measuredResistancePostHeater);
 
    // Calculate the EMA of the measured resistance.
-  _emaResistancePreHeater = CalculateExponentialMovingAverage(_alpha,_emaResistancePreHeater, measuredResistancePreHeater);
-  _emaResistancePostHeater = CalculateExponentialMovingAverage(_alpha,_emaResistancePostHeater, measuredResistancePostHeater);
-  // _emaSafetyResistancePreHeater is much more responsive than _emaResistancePreHeater
-  _emaSafetyResistancePreHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePreHeater, measuredResistancePreHeater);
-  _emaSafetyResistancePostHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyResistancePostHeater, measuredResistancePostHeater);
+  _emaTemperaturePreHeater = CalculateExponentialMovingAverage(_alpha,_emaTemperaturePreHeater, temperaturePreHeater);
+  _emaTemperaturePostHeater = CalculateExponentialMovingAverage(_alpha,_emaTemperaturePostHeater, temperaturePostHeater);
+  // _emaSafetyTemperaturePreHeater is much more responsive than _emaTemperaturePreHeater
+  _emaSafetyTemperaturePreHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
+  _emaSafetyTemperaturePostHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
   //unsigned long currentRunTime = millis(); 
   
   unsigned long currentRunTime = millis(); 
@@ -149,15 +149,22 @@ void loop(void) {
   
   if ((unsigned long)(currentRunTime - _previousRunTime) > (SAFETY_INTERVAL-1)) {
    // only do safety checks if SAFETY_INTERVAL has passed
-    SafetyCheck(_emaSafetyResistancePreHeater);
-    // only after install -> SafetyCheck(_emaSafetyResistancePostHeater);  
+    SafetyCheck(_emaSafetyTemperaturePreHeater);
+    // only after install -> SafetyCheck(_emaSafetyTemperaturePostHeater);  
     #if (REPORTINGLEVEL !=0)
       if (_deadManSwitch == false){
         msgToReport = MsgErrorDeadMan;
       }
     #endif
     #if (REPORTINGLEVEL == 2)
-      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+      outReport(
+        msgToReport, 
+        currentRunTime,
+        measuredResistancePreHeater,
+        measuredResistancePostHeater,
+        temperaturePreHeater,
+        temperaturePostHeater
+      );    
     #endif
   }
 
@@ -177,7 +184,14 @@ void loop(void) {
     }
     
     #if (REPORTINGLEVEL == 1)
-      outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+      outReport(
+        msgToReport, 
+        currentRunTime,
+        measuredResistancePreHeater,
+        measuredResistancePostHeater,
+        temperaturePreHeater,
+        temperaturePostHeater
+      );
     #elif (REPORTINGLEVEL == 0)
       // just an I'm alive written out to serial if we don't have any reporting
       // Serial.print(_previousRunCycles);
@@ -195,13 +209,27 @@ void loop(void) {
       //if _previousRunCycles is about to overflow then reset board
       #if (REPORTINGLEVEL !=0)
         msgToReport=MsgErrorRebootPriorToOverflow;
-        outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+        outReport(
+          msgToReport,
+          currentRunTime,
+          measuredResistancePreHeater,
+          measuredResistancePostHeater,
+          temperaturePreHeater,
+          temperaturePostHeater
+        );
       #endif
       resetFunc();
     }
   }
   #if (REPORTINGLEVEL == 3)
-    outReport(currentRunTime,measuredResistancePreHeater,measuredResistancePostHeater,msgToReport);
+    outReport(
+      msgToReport, 
+      currentRunTime,
+      measuredResistancePreHeater,
+      measuredResistancePostHeater,
+      temperaturePreHeater,
+      temperaturePostHeater
+    );
   #endif
 }
 
@@ -215,7 +243,14 @@ String outFileCompiledInfo() {
 }
 
 #if (REPORTINGLEVEL !=0)
-void outReport(unsigned long runTime, float resistancePre, float resistancePost,ReportMessage customStatusMessage ){
+void outReport(
+  ReportMessage customStatusMessage,
+  unsigned long runTime, 
+  float resistancePre, 
+  float resistancePost,
+  float temperaturePreHeater,
+  float temperaturePostHeater 
+){
     
     // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
     // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
@@ -243,10 +278,10 @@ void outReport(unsigned long runTime, float resistancePre, float resistancePost,
     //XXXX Serial.print(",\"A0_readingPreHeater\":");Serial.print((unsigned long)(readingPreHeater));
     Serial.print(",\"PreHeatOhms\":\"");Serial.print(resistancePre);Serial.print("\"");
     Serial.print(",\"PostHeatOhms\":\"");Serial.print(resistancePost);Serial.print("\"");
-    Serial.print(",\"PreHeatEmaOhms\":\"");Serial.print(_emaResistancePreHeater);Serial.print("\"");
-    Serial.print(",\"PostHeatEmaOhms\":\"");Serial.print(_emaResistancePostHeater);Serial.print("\"");
-    Serial.print(",\"PreSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePreHeater);Serial.print("\"");
-    Serial.print(",\"PostSafetyHeatEmaOhms\":\"");Serial.print(_emaSafetyResistancePostHeater);Serial.print("\"");
+    Serial.print(",\"PreHeatEmaTemp\":\"");Serial.print(_emaTemperaturePreHeater);Serial.print("\"");
+    Serial.print(",\"PostHeatTemp\":\"");Serial.print(_emaTemperaturePostHeater);Serial.print("\"");
+    Serial.print(",\"PreSafetyHeatEmaTemp\":\"");Serial.print(_emaSafetyTemperaturePreHeater);Serial.print("\"");
+    Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(_emaSafetyTemperaturePostHeater);Serial.print("\"");
     Serial.println("}");
 
     // TODO: Add write out to log (sd card or wifi ftp)
@@ -270,12 +305,13 @@ float degree_f_from_resistance(float resistance) {
   } else {
     // PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
     // LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
+    // Result = (0.92*PowerFunctionModel+1.08*LogestModel)/2
     return (17320.4/powf(resistance,0.60241)) - (22.8093 * log(resistance + 3000) + 279.254);
   }
 }
 
-void SafetyCheck(float measuredResistance) {
-  if (measuredResistance < Safety)
+void SafetyCheck(float measuredTemperature) {
+  if (measuredTemperature < Safety)
   {
     ThrowDeadMansSwitch();
   }
@@ -288,13 +324,13 @@ float CalculateExponentialMovingAverage(float alpha, float currentEma, float val
 
 float CalculateResistance(float readingHeater) {
   // setting a cap on readingHeater of 1022 instead of 1023 to avoids having to handle an INF and OVF errors with our math  
-  float measuredResistance = 0.0f;
+  float measuredTemperature = 0.0f;
   if ((readingHeater) < 1022.0f ) {
-    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
+    measuredTemperature = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
   } else {
-    measuredResistance = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022.0)  - 1.0); // 10K / ((1023/ADC) - 1) 
+    measuredTemperature = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022.0)  - 1.0); // 10K / ((1023/ADC) - 1) 
   }
-  return measuredResistance;
+  return measuredTemperature;
 }
 
 void OutGetTargetTemp(float &targetHi, float &targetLow) {
@@ -311,7 +347,7 @@ void OutGetTargetTemp(float &targetHi, float &targetLow) {
 
 void ThrowDeadMansSwitch() {
   _deadManSwitch = false;
-  digitalWrite(SafetyPIN, _deadManSwitch);
+  digitalWrite(SAFETYPIN, _deadManSwitch);
   TurnOffHeater();
 }
 
@@ -319,11 +355,11 @@ void SetHeatingStatus(float targetHi, float targetLow) {
   switch (_heatingStatus) {
     case NEITHER:
     case HEATING:
-      if (_emaResistancePreHeater < targetHi)
+      if (_emaTemperaturePreHeater < targetHi)
         _heatingStatus = COOLING;
       break;
     case COOLING:
-      if (_emaResistancePreHeater > targetLow)
+      if (_emaTemperaturePreHeater > targetLow)
         _heatingStatus = HEATING;
       break;
   }
