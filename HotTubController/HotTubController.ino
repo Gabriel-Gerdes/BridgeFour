@@ -1,4 +1,4 @@
-//#include <math.h>
+#include <math.h>
 
 #define REPORTINGLEVEL 1
 //currently reporting levels are:
@@ -306,7 +306,18 @@ float degree_f_from_resistance(float resistance) {
     // PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
     // LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
     // Result = (0.92*PowerFunctionModel+1.08*LogestModel)/2
-    return (17320.4/powf(resistance,0.60241)) - (22.8093 * log(resistance + 3000) + 279.254);
+    float PowerFunctionModel = 52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
+    float LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
+    #if (false) 
+      Serial.print(PowerFunctionModel);
+      Serial.print(LogestModel);
+      Serial.println((PowerFunctionModel+LogestModel)/2);
+      Serial.println(((0.92*(55880.76f * powf(resistance / 52.0f , -1.66f)))+
+        1.08*(207518.98* powf(0.9766636,resistance) - 3000))/2);
+      // {BLAME} next line (simplified formula) doesn't isn't returning the correct values...
+      //return (17320.4/powf(resistance,0.60241)) - (22.8093 * log(resistance + 3000) + 279.254);
+    #endif   
+    return (PowerFunctionModel+LogestModel)/2;
   }
 }
 
