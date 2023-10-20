@@ -1,3 +1,5 @@
+#include <math.h>
+
 #define REPORTINGLEVEL 1
 //currently reporting levels are:
 // 0 = no reporting
@@ -41,8 +43,8 @@ enum TargetTempature {
 // currently we are calculating about 2 samples per millisecond (6.5 when grounded on one thermistor) from the thermistor 
 // alpha of 0.001f responds from a full open to full closed in about 7 seconds,
 // where as an alpha of 0.0001f takes about 60 seconds for a similar response. 
-float _alpha = 0.001f; 
-float _alphaSafety = 0.005f; 
+const float _alpha = 0.001f; 
+const float _alphaSafety = 0.005f; 
 
 // Conditional compilation arguments
 
@@ -63,11 +65,16 @@ const long SAFETY_INTERVAL = 100;
 
 unsigned long _previousRunTime = 0;
 unsigned long _previousRunCycles = 0;
-
-float _emaResistancePreHeater = 0.0f;
-float _emaResistancePostHeater = 0.0f;
-float _emaSafetyResistancePreHeater = 0.0f;
-float _emaSafetyResistancePostHeater = 0.0f;
+//struct TempratureMeasures {
+//  float Resistance; //
+//  float Temperature;
+//  float TemperatureExponentialMovingAverage;
+//  float TemperatureCumulativeAverage; // 
+//}
+  float _emaResistancePreHeater = 0.0f;
+  float _emaResistancePostHeater = 0.0f;
+  float _emaSafetyResistancePreHeater = 0.0f;
+  float _emaSafetyResistancePostHeater = 0.0f;
 
 String _fileCompiledInfo;
 
@@ -113,6 +120,9 @@ void loop(void) {
   //    might need to capture a min / max value between action cycles, and if the diff exceeds some threshold, throw deadman switch
   float measuredResistancePreHeater = CalculateResistance(readingPreHeater);
   float measuredResistancePostHeater = CalculateResistance(readingPostHeater);
+  
+  float temperaturePreHeater = degree_f_from_resistance(measuredResistancePreHeater);
+  float temperaturePostHeater = degree_f_from_resistance(measuredResistancePostHeater);
 
    // Calculate the EMA of the measured resistance.
   _emaResistancePreHeater = CalculateExponentialMovingAverage(_alpha,_emaResistancePreHeater, measuredResistancePreHeater);
@@ -243,6 +253,31 @@ void outReport(unsigned long runTime, float resistancePre, float resistancePost,
 
 }
 #endif
+
+//Model Name: Formula to Calculate Resistance
+//power function curve: 55880.76 * (degree_f / 52) ** (-1.66)
+//LogestModel: 207518.98*(0.9766636^degree_f)
+
+//Model Name: Formula to Calculate Temperature
+//power function curve: 52 * (resistance / 55880.76) ** (1 / -1.66)
+//LogestModel: -42.3495 log(4.81884×10^-6 (resistance + 3000)) 
+
+float degree_f_from_resistance(float resistance) {
+  float PowerFunctionModel = 0.0f; //
+  float LogestModel = 0.0f; //
+  if (resistance > 97012) {
+    PowerFunctionModel = 34.0f;
+    LogestModel = 34.0f;
+  } else if (resistance < 9200) {
+    PowerFunctionModel = 131.0f;
+    LogestModel = 131.0f;
+  } else {
+     PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, -1.0f / -1.66f);
+     LogestModel = -42.3495 * (-11.772974488431524 + log(0.625 * resistance));
+  }
+  // ensemble averaging
+  return (0.4 * PowerFunctionModel) + (1.6 * LogestModel)/2;
+}
 
 void SafetyCheck(float measuredResistance) {
   if (measuredResistance < Safety)
