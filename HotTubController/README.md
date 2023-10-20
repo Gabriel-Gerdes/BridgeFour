@@ -27,4 +27,4 @@ $`-42.3495 \cdot log(4.81884×10^{-6} \cdot (resistance + 3000)) `$
 - Ensemble Weighted Average: <br/> $`\left(\left(0.92 \cdot       52 \cdot \left(resistance \over 55880.76 \right) ^ {1 \over -1.66} \right) + \left(1.08 \cdot -42.3495 \cdot log(4.81884×10^{-6} \cdot (resistance + 3000)) \right) \right) \over 2`$
 
 - Ensemble Weighted Average Simplified: <br/>
-$` 17320.4 \over x^{0.60241} - 22.8093 \cdot log(x+3000) + 279.254 `$
+$` \left(17320.4 \over x^{0.60241} \right) -\left(22.8093 \cdot log(x+3000) + 279.254 \right)`$
