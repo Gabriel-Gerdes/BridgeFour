@@ -18,7 +18,7 @@ Residuals of Temperature Models
 - LogestModel: <br/> $`207518.98\cdot\left(0.9766636^{degree_f}\right)`$
 - Ensemble Weighted Average: <br/>
 $`\left(\left(0.92 \cdot 55880.76\cdot\left(degree_f\over52\right)^{-1.66} \right) + \left(1.08 \cdot 207518.98\cdot\left(0.9766636^{degree_f}\right) \right) \right) \over 2`$
-- Ensemble Weighted Average Simplified: 112060 * 0.976664^x + (1.81378×10^7)/x^1.66
+- Ensemble Weighted Average Simplified: $` 112060 \cdot 0.976664^{degree_f} + \left((1.81378×10^{7}) \over x^{1.66} \right)`$
 
 ### Derived models: Formula to Calculate Temperature
 - //Model Name: Formula to Calculate Temperature
