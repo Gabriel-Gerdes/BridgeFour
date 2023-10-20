@@ -25,3 +25,6 @@ $`\left(\left(0.92 \cdot 55880.76\cdot\left(degree_f\over52\right)^{-1.66} \righ
 - LogestModel: <br/>
 $`-42.3495 \cdot log(4.81884×10^{-6} \cdot (resistance + 3000)) `$
 - Ensemble Weighted Average: <br/> $`\left(\left(0.92 \cdot       52 \cdot \left(resistance \over 55880.76 \right) ^ {1 \over -1.66} \right) + \left(1.08 \cdot -42.3495 \cdot log(4.81884×10^{-6} \cdot (resistance + 3000)) \right) \right) \over 2`$
+
+- Ensemble Weighted Average Simplified: <br/>
+$` 17320.4 \over x^{0.60241} - 22.8093 \cdot log(x+3000) + 279.254 `$
