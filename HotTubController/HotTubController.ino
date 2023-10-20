@@ -1,4 +1,4 @@
-#include <math.h>
+//#include <math.h>
 
 #define REPORTINGLEVEL 1
 //currently reporting levels are:
@@ -263,20 +263,15 @@ void outReport(unsigned long runTime, float resistancePre, float resistancePost,
 //LogestModel: -42.3495 log(4.81884×10^-6 (resistance + 3000)) 
 
 float degree_f_from_resistance(float resistance) {
-  float PowerFunctionModel = 0.0f; //
-  float LogestModel = 0.0f; //
   if (resistance > 97012) {
-    PowerFunctionModel = 34.0f;
-    LogestModel = 34.0f;
+    return 34.0f;
   } else if (resistance < 9200) {
-    PowerFunctionModel = 131.0f;
-    LogestModel = 131.0f;
+    return 131.0f;
   } else {
-     PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, -1.0f / -1.66f);
-     LogestModel = -42.3495 * (-11.772974488431524 + log(0.625 * resistance));
+    // PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
+    // LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
+    return (17320.4/powf(resistance,0.60241)) - (22.8093 * log(resistance + 3000) + 279.254);
   }
-  // ensemble averaging
-  return (0.4 * PowerFunctionModel) + (1.6 * LogestModel)/2;
 }
 
 void SafetyCheck(float measuredResistance) {
