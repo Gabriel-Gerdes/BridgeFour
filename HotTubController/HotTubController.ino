@@ -23,12 +23,12 @@ enum ReportMessage {
 
 enum TargetTempature {
   //Sleep
-  SleepHi = 85 // 24832 ohms  ,//85F
-  SleepLow = 80 // 27931 ohms, //80F
+  SleepHi = 85, // 24832 ohms  ,//85F
+  SleepLow = 80, // 27931 ohms, //80F
 
   //Active Heating
-  Hi = 101 // 17247 ohms, //101F
-  Low = 97 //20649, //95F
+  Hi = 101, // 17247 ohms, //101F
+  Low = 97, //20649, //95F
   //Consider: As we are using an EMA for temperature measurements means we can likely
   // narrow the band of active heating to 101-98
 
