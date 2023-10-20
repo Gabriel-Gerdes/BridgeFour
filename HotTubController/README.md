@@ -14,7 +14,7 @@ Residuals of Temperature Models
 
 ### Derived models: Formula to Calculate Resistance
 - power function curve: <br/>
-   $`resistance = 55880.76 \left(degree_f \over 52 \right)^-1.66`$ 
+   $`resistance = 55880.76 \left(degree_f \over 52 \right)^{-1.66}`$ 
 - LogestModel: 207518.98*(0.9766636^degree_f)
 - Ensemble Weighted Average: ((0.92*55880.76*($degree_f / 52)^(-1.66))+(1.08*207518.98*(0.9766636^degree_f)))/2
 - Ensemble Weighted Average Simplified: 112060 * 0.976664^x + (1.81378×10^7)/x^1.66
