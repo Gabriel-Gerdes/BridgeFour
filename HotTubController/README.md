@@ -22,6 +22,6 @@ $`\left(\left(0.92 \cdot 55880.76\cdot\left(degree_f\over52\right)^{-1.66} \righ
 
 ### Derived models: Formula to Calculate Temperature
 - power function curve:<br/> 
- $` 52 \cdot \left(resistance \over 55880.76 \right) ^ {1/-1.66} `$
+ $` 52 \cdot \left(resistance \over 55880.76 \right) ^ {1 \over -1.66} `$
 - LogestModel: <br/>
-$`-42.3495 \cdot log(4.81884×10^{-6} (resistance + 3000)) `$
+$`-42.3495 \cdot log(4.81884×10^{-6} \cdot (resistance + 3000)) `$
