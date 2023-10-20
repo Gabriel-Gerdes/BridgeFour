@@ -1,11 +1,12 @@
 #include <math.h>
-
+#define DEBUGENABLED true
 #define REPORTINGLEVEL 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
 // 2 = frequent reporting (Durring safety check)
 // 3 = continious reporting (Every loop)
+#define macroOutArbitrary(...) outArbitraryReport(__VA_ARGS__, NULL)
 #define SERIESRESISTOR 12700
 #define THERMISTORPINPREHEATER A0
 #define THERMISTORPINPOSTHEATER A2
@@ -159,7 +160,6 @@ void loop(void) {
     #if (REPORTINGLEVEL == 2)
       outReport(
         msgToReport, 
-        currentRunTime,
         measuredResistancePreHeater,
         measuredResistancePostHeater,
         temperaturePreHeater,
@@ -186,7 +186,6 @@ void loop(void) {
     #if (REPORTINGLEVEL == 1)
       outReport(
         msgToReport, 
-        currentRunTime,
         measuredResistancePreHeater,
         measuredResistancePostHeater,
         temperaturePreHeater,
@@ -211,7 +210,6 @@ void loop(void) {
         msgToReport=MsgErrorRebootPriorToOverflow;
         outReport(
           msgToReport,
-          currentRunTime,
           measuredResistancePreHeater,
           measuredResistancePostHeater,
           temperaturePreHeater,
@@ -224,7 +222,6 @@ void loop(void) {
   #if (REPORTINGLEVEL == 3)
     outReport(
       msgToReport, 
-      currentRunTime,
       measuredResistancePreHeater,
       measuredResistancePostHeater,
       temperaturePreHeater,
@@ -245,20 +242,18 @@ String outFileCompiledInfo() {
 #if (REPORTINGLEVEL !=0)
 void outReport(
   ReportMessage customStatusMessage,
-  unsigned long runTime, 
   float resistancePre, 
   float resistancePost,
   float temperaturePreHeater,
   float temperaturePostHeater 
 ){
-    
     // Build Log Message as json-logs:https://signoz.io/blog/json-logs/
     // e.g.->  {"RunTime":1235,} Longs and ints don't need to be quoted...
     // Strings are a pain and memory hogs, so just don't use them if we don't need them
     Serial.print("{");
     Serial.print("\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
     Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
-    Serial.print(",\"Running\" : ");Serial.print((unsigned long)(runTime));
+    Serial.print(",\"Running\" : ");Serial.print((unsigned long)(millis()));
 
     switch (customStatusMessage) {
       case MsgRoutine:
@@ -284,10 +279,34 @@ void outReport(
     Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(_emaSafetyTemperaturePostHeater);Serial.print("\"");
     Serial.println("}");
 
-    // TODO: Add write out to log (sd card or wifi ftp)
+    // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement? )
 
 }
 #endif
+
+void outArbitraryReport(const char *arg, ...){
+  // [TODO] to handle any type of value passed review https://stackoverflow.com/a/57054219
+
+  // macro macroOutArbitrary should be adding a null as the last argument to any call to this function...
+  // This expects that every other character array passed is the json attribute name, the next is the attribute value. 
+  // Using this method to allow for many parameters to the function: https://stackoverflow.com/a/9040731
+  // ... supports up to 126 parameters (C compilers aren't required to support more than 127 parameters)  
+  Serial.print("{");
+  
+  va_list arguments;
+
+    for (va_start(arguments, arg); arg != NULL; arg = va_arg(arguments, const char *)) {
+        //cout << arg << endl;
+        Serial.print(arg);
+    }
+
+    va_end(arguments);
+
+
+    Serial.println("}");
+  // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement?)
+}
+
 
 //Model Name: Formula to Calculate Resistance
 //power function curve: 55880.76 * (degree_f / 52) ** (-1.66)
@@ -298,8 +317,8 @@ void outReport(
 //LogestModel: -42.3495 log(4.81884×10^-6 (resistance + 3000)) 
 
 float degree_f_from_resistance(float resistance) {
-  if (resistance > 97012) {
-    return 34.0f;
+  if (resistance > 279447) {
+    return 15.0f;
   } else if (resistance < 9200) {
     return 131.0f;
   } else {
@@ -308,12 +327,18 @@ float degree_f_from_resistance(float resistance) {
     // Result = (0.92*PowerFunctionModel+1.08*LogestModel)/2
     float PowerFunctionModel = 52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
     float LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
-    #if (false) 
-      Serial.print(PowerFunctionModel);
-      Serial.print(LogestModel);
-      Serial.println((PowerFunctionModel+LogestModel)/2);
-      Serial.println(((0.92*(55880.76f * powf(resistance / 52.0f , -1.66f)))+
-        1.08*(207518.98* powf(0.9766636,resistance) - 3000))/2);
+    #if (DEBUGENABLED) 
+      // finish outArbitraryReport and call that instead
+      Serial.print("{DEBUGMESSAGE:");
+      Serial.print("PowerFunctionModel="); Serial.print(PowerFunctionModel);
+      Serial.print(";    LogestModel="); Serial.print(LogestModel);
+      Serial.print(";    EnsembelModel="); Serial.print((0.92*PowerFunctionModel+1.08*LogestModel)/2);
+      // {BLAME} next line (simplified formula) doesn't isn't returning the correct values...
+      Serial.print(";    AlternateAttemptEnsembelModel="); Serial.print(
+        ((0.92*(55880.76f * powf(resistance / 52.0f , -1.66f)))+
+        1.08*(207518.98* powf(0.9766636,resistance) - 3000))/2
+      );
+      Serial.println("}");
       // {BLAME} next line (simplified formula) doesn't isn't returning the correct values...
       //return (17320.4/powf(resistance,0.60241)) - (22.8093 * log(resistance + 3000) + 279.254);
     #endif   
