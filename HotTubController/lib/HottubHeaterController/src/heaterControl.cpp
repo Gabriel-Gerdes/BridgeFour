@@ -35,7 +35,7 @@ namespace heaterController {
   };
 
   // Exposed Functions
-  void SafetyCheck(float measuredTemperature, int8_t &DeadmanSwitchStatus) {
+  void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus) {
   if (measuredTemperature < Config::SafetyMaxTemperature)
     {
       ThrowDeadMansSwitch(DeadmanSwitchStatus);
