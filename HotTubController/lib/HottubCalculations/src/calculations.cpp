@@ -1,11 +1,13 @@
-#include <Arduino.h>
+#ifndef Serial
+  #include <Arduino.h>
+#endif
 #include <math.h>
 
 #ifndef SERIESRESISTOR
-    #include "../include/config.h"
+    #include "../../../include/config.h"
 #endif
 #ifndef outArbitraryReport
-    #include "../lib/NaiveLogger/src/naiveLogger.cpp"
+    #include "../../../lib/NaiveLogger/src/naiveLogger.cpp"
 #endif
 //Model Name: Formula to Calculate Resistance
 //power function curve: 55880.76 * (degree_f / 52) ** (-1.66)

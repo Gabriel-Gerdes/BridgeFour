@@ -2,42 +2,44 @@
   #include <Arduino.h>
 #endif
 #ifndef _deadManSwitch
-  #include "../include/skeleton.h"
+  #include "../../../include/skeleton.h"
 #endif
 #ifndef SAFETYPIN
-  #include "../include/config.h"
+  #include "../../../include/config.h"
 #endif
 
-void SafetyCheck(float measuredTemperature) {
-#ifndef Saftey
+// Declare global variables used as external
+extern bool _deadManSwitch;
+extern HeatControl::HeatingMode _heatingStatus;
+extern float _emaTemperaturePreHeater;
 
-#endif
-  if (measuredTemperature < Safety)
-  {
-    ThrowDeadMansSwitch();
-  }
+void TurnOffHeater(){
+   digitalWrite(HEATERPIN, LOW);
 }
 void ThrowDeadMansSwitch() {
   _deadManSwitch = false;
   digitalWrite(SAFETYPIN, _deadManSwitch);
   TurnOffHeater();
 }
-
-
+void SafetyCheck(float measuredTemperature) {
+if (measuredTemperature < Safety)
+  {
+    ThrowDeadMansSwitch();
+  }
+}
 void SetHeatingStatus(float targetHi, float targetLow) {
   switch (_heatingStatus) {
-    case HeatControl::NEITHER:
-    case HeatControl::HEATING:
+    case HeatControl::HeatingMode::NEITHER:
+    case HeatControl::HeatingMode::HEATING:
       if (_emaTemperaturePreHeater < targetHi)
-        _heatingStatus = HeatControl::COOLING;
+        _heatingStatus = HeatControl::HeatingMode::COOLING;
       break;
-    case HeatControl::COOLING:
+    case HeatControl::HeatingMode::COOLING:
       if (_emaTemperaturePreHeater > targetLow)
-        _heatingStatus = HeatControl::HEATING;
+        _heatingStatus = HeatControl::HeatingMode::HEATING;
       break;
   }
 }
-
 void SetHeater() {  
   switch (_heatingStatus) {
     case HeatControl::COOLING:
@@ -51,14 +53,11 @@ void SetHeater() {
   }
 }
 
-void TurnOffHeater(){
-   digitalWrite(HEATERPIN, LOW);
-}
-
+void TurnOnHeater();
 void TurnOnHeater(){
       digitalWrite(HEATERPIN, HIGH);
 }
-
+void OutGetTargetTemp(float &targetHi, float &targetLow);
 void OutGetTargetTemp(float &targetHi, float &targetLow) {   // & passing variables by ref
   bool isSleep = digitalRead(SLEEPSWITCH); 
   if (!isSleep) {

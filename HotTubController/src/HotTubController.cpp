@@ -1,17 +1,51 @@
-#include <Arduino.h>
-#include <math.h>
+#ifndef Serial
+  #include <Arduino.h>
+#endif
+#include "../include/config.h"
+#include "../include/skeleton.h"
 // Now using patformio instead of the arduino ide / arduino vscode extention
 // Converting from .ino to a .cpp source file as C++ file...
 // This means that we need to declare each custom function see:
 // https://docs.platformio.org/en/latest/faq/ino-to-cpp.html
+// Global variables
+// by convention every variable begining with an underscore in this project is a global varaible.
+// really need to refactor these from external global variables to some other method of 
+// passing this information arround, could use pointers? 
 
-#include "../include/config.h"
-#include "../include/skeleton.h"
+unsigned long _previousRunTime ;
+unsigned long _previousRunCycles ;
+
+bool _isSleep;
+bool _deadManSwitch;
+HeatControl::HeatingMode _heatingStatus = HeatControl::HeatingMode::NEITHER;
+float _emaTemperaturePreHeater;
+float _emaTemperaturePostHeater;
+float _emaSafetyTemperaturePreHeater;
+float _emaSafetyTemperaturePostHeater;
+// consider using a struct for all the temperature measures related to a themistor...
+//struct TempratureMeasures {
+//  float Resistance;
+//  float Temperature;
+//  float TemperatureExponentialMovingAverage;
+//  float TemperatureCumulativeAverage;
+//  unsigned int ThermistorId; // what specific thermistor are we talking about?
+//}
+
+
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
 #if (REPORTINGLEVEL !=0)
-  #include "../lib/NaiveLogger/src/naiveLogger.cpp"
+  #ifndef outFileCompiledInfo 
+    #include "../lib/NaiveLogger/src/naiveLogger.cpp"
+  #endif
 #endif
+
+//Function declarations
+extern void TurnOffHeater();
+void ThrowDeadMansSwitch();
+void SafetyCheck(float measuredTemperature);
+void SetHeatingStatus(float targetHi, float targetLow);
+void SetHeater();
 
 // enable soft reset
 void(* resetFunc) (void) = 0;
@@ -177,4 +211,3 @@ void loop(void) {
     );
   #endif
 }
-

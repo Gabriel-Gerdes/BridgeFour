@@ -1,4 +1,10 @@
-#include "skeleton.h"
+#ifndef Serial
+  #include <Arduino.h>
+#endif
+#ifndef _previousRunCycles
+  #include "../../../include/skeleton.h"  
+#endif
+
 #define macroOutArbitrary(...) outArbitraryReport(__VA_ARGS__, NULL)
 
 static String _fileCompiledInfo; // static to make it a variabl scoped to this .cpp file
