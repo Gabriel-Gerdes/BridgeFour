@@ -2,11 +2,10 @@
   #include <Arduino.h>
 #endif
 #include <math.h>
-
-#ifndef SERIESRESISTOR
+#ifndef Config::SERIESRESISTOR
     #include "../../../include/config.h"
 #endif
-#ifndef outArbitraryReport
+#ifndef naiveLogger::outArbitraryReport
     #include "../../../lib/NaiveLogger/src/naiveLogger.cpp"
 #endif
 //Model Name: Formula to Calculate Resistance
@@ -59,9 +58,9 @@ float CalculateResistance(float readingHeater) {
   // setting a cap on readingHeater of 1022 instead of 1023 to avoids having to handle an INF and OVF errors with our math  
   float measuredTemperature = 0.0f;
   if ((readingHeater) < 1022.0f ) {
-    measuredTemperature = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
+    measuredTemperature = (Config::SERIESRESISTOR + 0.0f) / (float)((1023.001 / readingHeater)  - 1.0); // 10K / ((1023/ADC) - 1) 
   } else {
-    measuredTemperature = (SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022.0)  - 1.0); // 10K / ((1023/ADC) - 1) 
+    measuredTemperature = (Config::SERIESRESISTOR + 0.0f) / (float)((1023.001 / 1022.0)  - 1.0); // 10K / ((1023/ADC) - 1) 
   }
   return measuredTemperature;
 }

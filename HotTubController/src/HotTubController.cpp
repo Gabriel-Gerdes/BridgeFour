@@ -1,23 +1,38 @@
+
+#pragma once
 #ifndef Serial
   #include <Arduino.h>
 #endif
 #include "../include/config.h"
-#include "../include/skeleton.h"
+#include "../lib/HottubCalculations/src/calculations.cpp"
+#include "../lib/HottubHeaterController/src/heaterControl.cpp"
+#if (REPORTINGLEVEL !=0)
+  #ifndef outFileCompiledInfo 
+    #include "../lib/NaiveLogger/src/naiveLogger.cpp"
+  #endif
+#endif
+
 // Now using patformio instead of the arduino ide / arduino vscode extention
 // Converting from .ino to a .cpp source file as C++ file...
 // This means that we need to declare each custom function see:
 // https://docs.platformio.org/en/latest/faq/ino-to-cpp.html
+
+
+//----------------------------------------------------------------
 // Global variables
+//----------------------------------------------------------------
 // by convention every variable begining with an underscore in this project is a global varaible.
 // really need to refactor these from external global variables to some other method of 
 // passing this information arround, could use pointers? 
+String _fileCompiledInfo; // static to make it a variabl scoped to this .cpp file
+int8_t _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
 
 unsigned long _previousRunTime ;
 unsigned long _previousRunCycles ;
 
 bool _isSleep;
-bool _deadManSwitch;
-HeatControl::HeatingMode _heatingStatus = HeatControl::HeatingMode::NEITHER;
+bool _deadManSwitchStatus;
+
 float _emaTemperaturePreHeater;
 float _emaTemperaturePostHeater;
 float _emaSafetyTemperaturePreHeater;
@@ -30,22 +45,7 @@ float _emaSafetyTemperaturePostHeater;
 //  float TemperatureCumulativeAverage;
 //  unsigned int ThermistorId; // what specific thermistor are we talking about?
 //}
-
-
-#include "../lib/HottubCalculations/src/calculations.cpp"
-#include "../lib/HottubHeaterController/src/heaterControl.cpp"
-#if (REPORTINGLEVEL !=0)
-  #ifndef outFileCompiledInfo 
-    #include "../lib/NaiveLogger/src/naiveLogger.cpp"
-  #endif
-#endif
-
-//Function declarations
-extern void TurnOffHeater();
-void ThrowDeadMansSwitch();
-void SafetyCheck(float measuredTemperature);
-void SetHeatingStatus(float targetHi, float targetLow);
-void SetHeater();
+// 
 
 // enable soft reset
 void(* resetFunc) (void) = 0;
@@ -57,9 +57,9 @@ void setup(void) {
   Serial.begin(1000000);  //Serial.begin(9600); 
 
 
-  pinMode(HEATERPIN, OUTPUT);
-  pinMode(SAFETYPIN, OUTPUT);
-  pinMode(SLEEPSWITCH, INPUT_PULLUP);
+  pinMode(Config::HEATERPIN, OUTPUT);
+  pinMode(Config::SAFETYPIN, OUTPUT);
+  pinMode(Config::SLEEPSWITCH, INPUT_PULLUP);
   #if (REPORTINGLEVEL !=0)
     _fileCompiledInfo = outFileCompiledInfo();
   #endif
@@ -71,9 +71,9 @@ void setup(void) {
   _previousRunCycles = 0;
 
   _isSleep = false;
-  _deadManSwitch = true;
+  _deadManSwitchStatus = true;
 
-  HeatControl::HeatingMode _heatingStatus = HeatControl::HeatingMode::NEITHER;
+  _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
 
 
   //_emaTemperaturePreHeater = 0.0f;
@@ -82,8 +82,8 @@ void setup(void) {
   //_emaSafetyTemperaturePostHeater = 0.0f;
   // Get intial resistance values on initialization, 
   // so we don't have to wait for the value to ramp up to valid values from 0
-  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(THERMISTORPINPREHEATER)));
-  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(THERMISTORPINPOSTHEATER)));
+  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER)));
+  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER)));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
   _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
 }
@@ -92,8 +92,8 @@ void setup(void) {
 void loop(void) {
   //Allways execute
   //TODO: Add checks against DeadMansSwitch
-  float readingPreHeater = analogRead(THERMISTORPINPREHEATER);
-  float readingPostHeater = analogRead(THERMISTORPINPOSTHEATER);
+  float readingPreHeater = analogRead(Config::THERMISTORPINPREHEATER);
+  float readingPostHeater = analogRead(Config::THERMISTORPINPOSTHEATER);
   //TODO: #3 handle common Thermistor Read errors 
   //  - readingPreHeater > 1018 :A a detached thermistor, but SERIESRESISTOR is still in place
   //  - readingPreHeater < 7 : thermistor is grounded or A0 is detached
@@ -107,11 +107,11 @@ void loop(void) {
   float temperaturePostHeater = degree_f_from_resistance(measuredResistancePostHeater);
 
    // Calculate the EMA of the measured resistance.
-  _emaTemperaturePreHeater = CalculateExponentialMovingAverage(_alpha,_emaTemperaturePreHeater, temperaturePreHeater);
-  _emaTemperaturePostHeater = CalculateExponentialMovingAverage(_alpha,_emaTemperaturePostHeater, temperaturePostHeater);
+  _emaTemperaturePreHeater = CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePreHeater, temperaturePreHeater);
+  _emaTemperaturePostHeater = CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePostHeater, temperaturePostHeater);
   // _emaSafetyTemperaturePreHeater is much more responsive than _emaTemperaturePreHeater
-  _emaSafetyTemperaturePreHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
-  _emaSafetyTemperaturePostHeater = CalculateExponentialMovingAverage(_alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
+  _emaSafetyTemperaturePreHeater = CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
+  _emaSafetyTemperaturePostHeater = CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
   //unsigned long currentRunTime = millis(); 
   
   unsigned long currentRunTime = millis(); 
@@ -129,12 +129,15 @@ void loop(void) {
     Report::ReportMessage msgToReport;
   #endif
   
-  if ((unsigned long)(currentRunTime - _previousRunTime) > (SAFETY_INTERVAL-1)) {
-   // only do safety checks if SAFETY_INTERVAL has passed
-    SafetyCheck(_emaSafetyTemperaturePreHeater);
-    // only after install -> SafetyCheck(_emaSafetyTemperaturePostHeater);  
+  if ((unsigned long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
+   // only do safety checks if Config::SAFETY_INTERVAL has passed
+    heaterController::SafetyCheck(
+      _emaSafetyTemperaturePreHeater,
+      _deadManSwitchStatus
+    );
+    // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
     #if (REPORTINGLEVEL !=0)
-      if (_deadManSwitch == false){
+      if (_deadManSwitchStatus == false){
         msgToReport = Report::ReportMessage::MsgErrorDeadMan;
       }
     #endif
@@ -150,16 +153,16 @@ void loop(void) {
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
-  if ((unsigned long)(currentRunTime - _previousRunTime) > (ACTION_INTERVAL-1)) {
+  if ((unsigned long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
-    if (_deadManSwitch != false) {
+    if (_deadManSwitchStatus != false) {
       float targetHi;
       float targetLow;
       // sets what our hi and low should be
-      OutGetTargetTemp(targetHi, targetLow);
-      SetHeatingStatus(targetHi, targetLow);
-      SetHeater();
+      heaterController::OutGetTargetTemp(targetHi, targetLow);
+      heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
+      heaterController::SetHeater(_heatingStatusRequest);
       #if (REPORTINGLEVEL != 0)
         msgToReport=Report::ReportMessage::MsgRoutine;
       #endif

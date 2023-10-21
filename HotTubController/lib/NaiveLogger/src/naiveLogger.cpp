@@ -1,13 +1,38 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
-#ifndef _previousRunCycles
-  #include "../../../include/skeleton.h"  
-#endif
+
+namespace naiveLogger {
+  void outArbitraryReport(const char *arg, ...);
+  void outReport(
+    naiveLogger::ReportMessage customStatusMessage,
+    float resistancePre, 
+    float resistancePost,
+    float temperaturePreHeater,
+    float temperaturePostHeater 
+  ) ;
+  enum ReportMessage {
+      MsgRoutine,
+      MsgErrorDeadMan,
+      MsgErrorRebootPriorToOverflow,
+      MsgAdHocReport
+  };
+}
+
+bool outReportPrefix(naiveLogger::ReportMessage customStatusMessage);
+  
+String outFileCompiledInfo();
+
+extern String _fileCompiledInfo;
+extern unsigned long _previousRunCycles;
+extern unsigned long _previousRunTime;
+extern float _emaTemperaturePreHeater;
+extern float _emaTemperaturePostHeater;
+extern float _emaSafetyTemperaturePostHeater;
+extern float _emaSafetyTemperaturePreHeater;
+
 
 #define macroOutArbitrary(...) outArbitraryReport(__VA_ARGS__, NULL)
-
-static String _fileCompiledInfo; // static to make it a variabl scoped to this .cpp file
 
 // ----------------------------------------------------------------
 // Logging/Reporting Functions
@@ -25,34 +50,28 @@ String outFileCompiledInfo() {
 }
 
 // json begining, and all the values that we allways log...
-bool outReportPrefix(unsigned int customStatusMessage){
+bool outReportPrefix(naiveLogger::ReportMessage customStatusMessage){
     Serial.print("{");
     Serial.print("\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
     Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
     Serial.print(",\"Time\" : ");Serial.print((unsigned long)(millis()));
 
-    // we shouldn't have to declare this enum twice... should we? it's in the main file and here...
-    enum ReportMessage {
-        MsgRoutine,
-        MsgErrorDeadMan,
-        MsgErrorRebootPriorToOverflow,
-        MsgAdHocReport
-    };
-
     switch (customStatusMessage) {
-      case MsgRoutine:
+      case naiveLogger::ReportMessage::MsgRoutine:
         Serial.print(",\"Status\":");Serial.print("\"Routine\"");
         return true;
-      case MsgErrorDeadMan:
+      case naiveLogger::ReportMessage::MsgErrorDeadMan:
         Serial.print(",\"Status\":");Serial.print("\"Error:Deadman Switch Thrown\"");
         return false;
-      case MsgErrorRebootPriorToOverflow:
+      case naiveLogger::ReportMessage::MsgErrorRebootPriorToOverflow:
         Serial.print(",\"Status\":");Serial.print("\"Error:Rebooting prior to unexpected overflow\"");
         return false;
-      case MsgAdHocReport:
+      case naiveLogger::ReportMessage::MsgAdHocReport:
         Serial.print(",\"Status\":");Serial.print("\"Error:Rebooting prior to unexpected overflow\"");
         return true;
-    }
+      default:
+        return false;
+    };
 }
 
 // close json
@@ -61,7 +80,7 @@ void outReportSuffix(){
 }
 
 void outReport(
-  unsigned int customStatusMessage,
+  naiveLogger::ReportMessage customStatusMessage,
   float resistancePre, 
   float resistancePost,
   float temperaturePreHeater,
