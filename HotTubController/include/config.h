@@ -1,20 +1,20 @@
 #pragma once
 #include <Arduino.h>
+// These are in the global namespace so that they can be used as conditional compliation arguments
+#define DEBUG false
+#define REPORTINGLEVEL 0 
+//currently reporting levels are:
+// 0 = no reporting
+// 1 = typical reporting (Durring action)
+// 2 = frequent reporting (Durring safety check)
+// 3 = continious reporting (Every loop)
+
 namespace Config {
   // Our project configuration items are found here
-  const bool DEBUG = true;
-  const int8_t DEREPORTINGLEVELUG = 1;
-
   // Why are these assigned to macros instead of simply being constants?
   const float SERIESRESISTOR = 12700; // installed resistor in parallel with the temp thermistor
   const int8_t THERMISTORPINPREHEATER = A0;
   const int8_t THERMISTORPINPOSTHEATER = A2;
-
-  //currently reporting levels are:
-  // 0 = no reporting
-  // 1 = typical reporting (Durring action)
-  // 2 = frequent reporting (Durring safety check)
-  // 3 = continious reporting (Every loop)
 
   const float alpha = 0.005f; 
   const float alphaSafety = 0.01f; 

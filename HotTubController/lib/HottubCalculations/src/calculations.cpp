@@ -2,10 +2,10 @@
   #include <Arduino.h>
 #endif
 #include <math.h>
-#ifndef Config::SERIESRESISTOR
+#ifndef SERIESRESISTOR
     #include "../../../include/config.h"
 #endif
-#ifndef naiveLogger::outArbitraryReport
+#ifndef outArbitraryReport
     #include "../../../lib/NaiveLogger/src/naiveLogger.cpp"
 #endif
 //Model Name: Formula to Calculate Resistance

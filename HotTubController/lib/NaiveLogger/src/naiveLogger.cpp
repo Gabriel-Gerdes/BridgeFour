@@ -1,6 +1,11 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
+#ifndef REPORTINGLEVEL
+  #include "../../../include/config.h"
+#endif
+
+#if REPORTINGLEVEL != 0
 
 namespace naiveLogger {
   void outArbitraryReport(const char *arg, ...);
@@ -130,3 +135,4 @@ void outArbitraryReport(const char *arg, ...){
     Serial.println("}");
   // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement?)
 }
+#endif

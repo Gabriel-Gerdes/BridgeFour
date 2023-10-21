@@ -34,51 +34,52 @@ namespace heaterController {
       COOLING
   };
 
-// Exposed Functions
-void SafetyCheck(float measuredTemperature, int8_t &DeadmanSwitchStatus) {
-if (measuredTemperature < Config::SafetyMaxTemperature)
-  {
-    ThrowDeadMansSwitch(DeadmanSwitchStatus);
-  }
-}
-void SetHeatingStatus(float targetHi, float targetLow, int8_t &HeatStatusRequest , float currentTemperature ) {
-  switch (HeatStatusRequest) {
-    case heaterController::HeatingMode::NEITHER:
-    case heaterController::HeatingMode::HEATING:
-      if (currentTemperature < targetHi)
-        HeatStatusRequest = heaterController::HeatingMode::COOLING;
-      break;
-    case heaterController::HeatingMode::COOLING:
-      if (currentTemperature >  targetLow)
-        HeatStatusRequest = heaterController::HeatingMode::HEATING;
-      break;
-  }
-}
-
-void SetHeater(int8_t heatingStatus) {  
-  switch (heatingStatus ) {
-    case heaterController::HeatingMode::COOLING:
-      TurnOffHeater( );
-      break;
-    case heaterController::HeatingMode::HEATING:
-      TurnOnHeater();
-      break;
-    default:
-      TurnOffHeater();
-  }
-}
-
-void OutGetTargetTemp(float &targetHi, float &targetLow) {   // & passing variables by ref
-  bool isSleep = digitalRead(Config::SLEEPSWITCH); 
-  if (!isSleep) {
-    targetHi = Config::Hi;
-    targetLow = Config::Low;
-  }
-  else {
-    targetHi = Config::SleepHi;
-    targetLow = Config::SleepLow;
+  // Exposed Functions
+  void SafetyCheck(float measuredTemperature, int8_t &DeadmanSwitchStatus) {
+  if (measuredTemperature < Config::SafetyMaxTemperature)
+    {
+      ThrowDeadMansSwitch(DeadmanSwitchStatus);
+    }
   }
 
-};
+  void SetHeatingStatus(float targetHi, float targetLow, int8_t &HeatStatusRequest , float currentTemperature ) {
+    switch (HeatStatusRequest) {
+      case heaterController::HeatingMode::NEITHER:
+      case heaterController::HeatingMode::HEATING:
+        if (currentTemperature < targetHi)
+          HeatStatusRequest = heaterController::HeatingMode::COOLING;
+        break;
+      case heaterController::HeatingMode::COOLING:
+        if (currentTemperature >  targetLow)
+          HeatStatusRequest = heaterController::HeatingMode::HEATING;
+        break;
+    }
+  }
+
+  void SetHeater(int8_t heatingStatus) {  
+    switch (heatingStatus ) {
+      case heaterController::HeatingMode::COOLING:
+        TurnOffHeater( );
+        break;
+      case heaterController::HeatingMode::HEATING:
+        TurnOnHeater();
+        break;
+      default:
+        TurnOffHeater();
+    }
+  }
+
+  void OutGetTargetTemp(float &targetHi, float &targetLow) {   // & passing variables by ref
+    bool isSleep = digitalRead(Config::SLEEPSWITCH); 
+    if (!isSleep) {
+      targetHi = Config::Hi;
+      targetLow = Config::Low;
+    }
+    else {
+      targetHi = Config::SleepHi;
+      targetLow = Config::SleepLow;
+    }
+
+  };
 
 }

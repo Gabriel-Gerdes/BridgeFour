@@ -1,12 +1,10 @@
-
-#pragma once
 #ifndef Serial
   #include <Arduino.h>
 #endif
 #include "../include/config.h"
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
-#if (REPORTINGLEVEL !=0)
+#if REPORTINGLEVEL != 0
   #ifndef outFileCompiledInfo 
     #include "../lib/NaiveLogger/src/naiveLogger.cpp"
   #endif
