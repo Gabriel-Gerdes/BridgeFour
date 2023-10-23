@@ -80,8 +80,8 @@ void setup(void) {
   //_emaSafetyTemperaturePostHeater = 0.0f;
   // Get intial resistance values on initialization, 
   // so we don't have to wait for the value to ramp up to valid values from 0
-  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER)));
-  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER)));
+  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR));
+  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
   _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
 }
@@ -98,18 +98,18 @@ void loop(void) {
   //  - readingPreHeaters that frequently cycle from 0 through 1023 
   //    occures when A0 is connected, but not powered or grounded.
   //    might need to capture a min / max value between action cycles, and if the diff exceeds some threshold, throw deadman switch
-  float measuredResistancePreHeater = CalculateResistance(readingPreHeater);
-  float measuredResistancePostHeater = CalculateResistance(readingPostHeater);
+  float measuredResistancePreHeater = CalculateResistance(readingPreHeater,Config::SERIESRESISTOR);
+  float measuredResistancePostHeater = CalculateResistance(readingPostHeater,Config::SERIESRESISTOR);
   
   float temperaturePreHeater = degree_f_from_resistance(measuredResistancePreHeater);
   float temperaturePostHeater = degree_f_from_resistance(measuredResistancePostHeater);
 
    // Calculate the EMA of the measured resistance.
-  _emaTemperaturePreHeater = CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePreHeater, temperaturePreHeater);
-  _emaTemperaturePostHeater = CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePostHeater, temperaturePostHeater);
+  CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePreHeater, temperaturePreHeater);
+  CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePostHeater, temperaturePostHeater);
   // _emaSafetyTemperaturePreHeater is much more responsive than _emaTemperaturePreHeater
-  _emaSafetyTemperaturePreHeater = CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
-  _emaSafetyTemperaturePostHeater = CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
+  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
+  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
   //unsigned long currentRunTime = millis(); 
   
   unsigned long currentRunTime = millis(); 
@@ -124,7 +124,7 @@ void loop(void) {
 
   // Initialize msgToReport
   #if (REPORTINGLEVEL !=0)
-    Report::ReportMessage msgToReport;
+    naiveLogger::ReportMessage msgToReport;
   #endif
   
   if ((unsigned long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
@@ -136,7 +136,7 @@ void loop(void) {
     // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
     #if (REPORTINGLEVEL !=0)
       if (_deadManSwitchStatus == false){
-        msgToReport = Report::ReportMessage::MsgErrorDeadMan;
+        msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
       }
     #endif
     #if (REPORTINGLEVEL == 2)
@@ -162,7 +162,7 @@ void loop(void) {
       heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
       heaterController::SetHeater(_heatingStatusRequest);
       #if (REPORTINGLEVEL != 0)
-        msgToReport=Report::ReportMessage::MsgRoutine;
+        msgToReport=naiveLogger::ReportMessage::MsgRoutine;
       #endif
     }
     
@@ -190,7 +190,7 @@ void loop(void) {
     if (_previousRunCycles > (unsigned long) (pow(2,8*sizeof(_previousRunCycles))-2)){
       //if _previousRunCycles is about to overflow then reset board
       #if (REPORTINGLEVEL !=0)
-        msgToReport=Report::ReportMessage::MsgErrorRebootPriorToOverflow;
+        msgToReport=naiveLogger::ReportMessage::MsgErrorRebootPriorToOverflow;
         outReport(
           msgToReport,
           measuredResistancePreHeater,
