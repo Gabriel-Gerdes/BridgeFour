@@ -32,7 +32,7 @@ and a contents of `src/main.c`:
 #include <Foo.h>
 #include <Bar.h>
 
-unsigned int main (void)
+int main (void)
 {
   ...
 }

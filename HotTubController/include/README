@@ -10,7 +10,7 @@ by including it, with the C preprocessing directive `#include'.
 
 #include "header.h"
 
-unsigned int main (void)
+int main (void)
 {
  ...
 }
