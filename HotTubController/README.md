@@ -4,8 +4,10 @@ Various Arduino Projects
 # Hot tub controller
 Current state is a minimal viable solution for controlling a heater to maintain temperature with thermistors as input.
 
-## Temperature Formulas
+## Installation Tips
+- *This is a generic Arduino board tip:*  for some arduino boards on windows I had to install FDI drivers from https://ftdichip.com/drivers/vcp-drivers/ in order to communicate over COM ports.
 
+## Temperature Formulas
 Model Chart of Temperature from Resistance Values for Balboa, Sundance, or Bret Aqualine Spa Temperature Sensors
 ![Model Chart of Temperature from Resistance Values for Balboa Sundance Bret Aqualine Spa Temp Sensors](/documentation/resources/ModelChartOfTempfromResistanceValuesforBalboaSundanceBretAqualineSpaTempSensors.png)
 
