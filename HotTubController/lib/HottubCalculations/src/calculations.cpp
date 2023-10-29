@@ -1,12 +1,8 @@
-#ifndef Serial
-  #include <Arduino.h>
+#ifndef powf
+  #include <math.h>
 #endif
-#include <math.h>
-#ifndef SERIESRESISTOR 
-    #include "../../../include/config.h"
-#endif
-#ifndef outArbitraryReport
-    #include "../../../lib/NaiveLogger/src/naiveLogger.cpp"
+#ifndef logf
+  #include <math.h>
 #endif
 //Model Name: Formula to Calculate Resistance
 //power function curve: 55880.76 * (degree_f / 52) ** (-1.66)
@@ -23,10 +19,11 @@ float degree_f_from_resistance(float resistance) {
     return 131.0f;
   } else {
     // PowerFunctionModel =  52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
-    // LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
+    // LogestModel = -42.3495 * (logf(4.81884*powf(10,-6)*(resistance+3000)));
     // Result = (0.92*PowerFunctionModel+1.08*LogestModel)/2
+    // https://en.cppreference.com/w/c/numeric/math/pow
     float PowerFunctionModel = 52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
-    float LogestModel = -42.3495 * (log(4.81884*powf(10,-6)*(resistance+3000)));
+    float LogestModel = -42.3495 * (logf(4.81884*powf(10,-6)*(resistance+3000)));
     // finish outArbitraryReport and call that instead
     #if (REPORTINGLEVEL !=0)
       #if (DEBUGENABLED) // not ready to implement yet 

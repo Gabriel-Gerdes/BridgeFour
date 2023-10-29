@@ -22,9 +22,9 @@
 // by convention every variable begining with an underscore in this project is a global varaible.
 // really need to refactor these from external global variables to some other method of 
 // passing this information arround, could use pointers? 
-String _fileCompiledInfo; // static to make it a variabl scoped to this .cpp file
-int8_t _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
-
+// normally we just use unsigned int and long, the arduino uno is a 8-bit machine, 
+// so using sized ints to save space. https://www.gnu.org/software/libc/manual/html_node/Integers.html
+unsigned int _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
 unsigned long _previousRunTime ;
 unsigned long _previousRunCycles ;
 
@@ -52,14 +52,13 @@ void(* resetFunc) (void) = 0;
 void setup(void) {
   // Check serial rates at: https://wormfood.net/avrbaudcalc.php
   // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
-  Serial.begin(1000000);  //Serial.begin(9600); 
-
 
   pinMode(Config::HEATERPIN, OUTPUT);
   pinMode(Config::SAFETYPIN, OUTPUT);
   pinMode(Config::SLEEPSWITCH, INPUT_PULLUP);
   #if (REPORTINGLEVEL !=0)
-    _fileCompiledInfo = outFileCompiledInfo();
+    Serial.begin(Config::SEARIALBAUDRATE); 
+    naiveLogger::outFileCompiledInfo();
   #endif
   // initialize digital pin LED_BUILTIN as an output. Onboard LED and D13 for Uno/Duo/Mega (all but Gemma and MKR100)
   pinMode(LED_BUILTIN, OUTPUT);
@@ -110,11 +109,11 @@ void loop(void) {
   // _emaSafetyTemperaturePreHeater is much more responsive than _emaTemperaturePreHeater
   CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
   CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
-  //unsigned long currentRunTime = millis(); 
+  //long currentRunTime = millis(); 
   
-  unsigned long currentRunTime = millis(); 
+  long currentRunTime = millis(); 
   // The number of milliseconds since board's last reset
-  // Unsigned Long is 32 bit and overflows after 4,294,967,295  (2^32-1)
+  // Unsigned Long is 32 bit (long) and overflows after 4,294,967,295  (2^32-1)
   // millis overflows ever 49.8 days
   // an unsigned negitive value is a positive value
   //for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
@@ -122,12 +121,13 @@ void loop(void) {
 
   // Perform saftey checks more frequently than actions
 
-  // Initialize msgToReport
+  // Initialize msgToReport as a variable of type enum ReportMessage
   #if (REPORTINGLEVEL !=0)
     naiveLogger::ReportMessage msgToReport;
+    msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  if ((unsigned long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
+  if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
    // only do safety checks if Config::SAFETY_INTERVAL has passed
     heaterController::SafetyCheck(
       _emaSafetyTemperaturePreHeater,
@@ -137,7 +137,7 @@ void loop(void) {
     #if (REPORTINGLEVEL !=0)
       if (_deadManSwitchStatus == false){
         msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
-      }
+      };
     #endif
     #if (REPORTINGLEVEL == 2)
       outReport(
@@ -145,13 +145,19 @@ void loop(void) {
         measuredResistancePreHeater,
         measuredResistancePostHeater,
         temperaturePreHeater,
-        temperaturePostHeater
+        temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
+        _emaSafetyTemperaturePreHeater,
+        _emaSafetyTemperaturePostHeater
       );    
     #endif
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
-  if ((unsigned long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
+  if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
     if (_deadManSwitchStatus != false) {
@@ -172,13 +178,14 @@ void loop(void) {
         measuredResistancePreHeater,
         measuredResistancePostHeater,
         temperaturePreHeater,
-        temperaturePostHeater
+        temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
+        _emaSafetyTemperaturePreHeater,
+        _emaSafetyTemperaturePostHeater
       );
-    #elif (REPORTINGLEVEL == 0)
-      // just an I'm alive written out to serial if we don't have any reporting
-      // Serial.print(_previousRunCycles);
-      //Serial.print(":");
-      Serial.println(micros());
     #endif
 
     // Reset previous run variables
@@ -196,7 +203,13 @@ void loop(void) {
           measuredResistancePreHeater,
           measuredResistancePostHeater,
           temperaturePreHeater,
-          temperaturePostHeater
+          temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
+        _emaSafetyTemperaturePreHeater,
+        _emaSafetyTemperaturePostHeater
         );
       #endif
       resetFunc();
@@ -208,7 +221,13 @@ void loop(void) {
       measuredResistancePreHeater,
       measuredResistancePostHeater,
       temperaturePreHeater,
-      temperaturePostHeater
+      temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
+        _emaSafetyTemperaturePreHeater,
+        _emaSafetyTemperaturePostHeater
     );
   #endif
 }

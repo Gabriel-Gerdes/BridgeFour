@@ -2,7 +2,7 @@
 #include <Arduino.h>
 // These are in the global namespace so that they can be used as conditional compliation arguments
 #define DEBUG false
-#define REPORTINGLEVEL 0
+#define REPORTINGLEVEL 1
  
 //currently reporting levels are:
 // 0 = no reporting
@@ -13,9 +13,11 @@
 namespace Config {
   // Our project configuration items are found here
   // Why are these assigned to macros instead of simply being constants?
-  const float SERIESRESISTOR = 12700; // installed resistor in parallel with the temp thermistor
-  const int8_t THERMISTORPINPREHEATER = A0;
-  const int8_t THERMISTORPINPOSTHEATER = A2;
+  const float SERIESRESISTOR = 10000; // installed resistor in parallel with the temp thermistor
+  const int THERMISTORPINPREHEATER = A0;
+  const int THERMISTORPINPOSTHEATER = A2;
+  const long SEARIALBAUDRATE = 1000000; 
+  //long is an integer range from 0 to 4,294,967,295, but a unit16_t is only 0 to 65,535 
 
   const float alpha = 0.005f; 
   const float alphaSafety = 0.01f; 

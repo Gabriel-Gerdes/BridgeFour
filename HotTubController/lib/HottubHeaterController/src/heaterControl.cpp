@@ -6,7 +6,7 @@
 // Declare local functions
 void TurnOffHeater();
 void TurnOnHeater();
-void ThrowDeadMansSwitch(int8_t &DeadmanSwitchStatus);
+void ThrowDeadMansSwitch(unsigned int &DeadmanSwitchStatus);
 
 void TurnOnHeater(){
       digitalWrite(Config::HEATERPIN,HIGH);
@@ -26,8 +26,8 @@ namespace heaterController {
   //----------------------------------------------------------------
   void OutGetTargetTemp(float &targetHi, float &targetLow);
   void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus);
-  void SetHeatingStatus(float targetHi, float targetLow, int8_t &HeatStatusRequest, float currentTemperature);
-  void SetHeater(int8_t heatingStatus);
+  void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest, float currentTemperature);
+  void SetHeater(unsigned int heatingStatus);
   enum HeatingMode {
       NEITHER,
       HEATING,
@@ -42,7 +42,7 @@ namespace heaterController {
     }
   }
 
-  void SetHeatingStatus(float targetHi, float targetLow, int8_t &HeatStatusRequest , float currentTemperature ) {
+  void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest , float currentTemperature ) {
     switch (HeatStatusRequest) {
       case heaterController::HeatingMode::NEITHER:
       case heaterController::HeatingMode::HEATING:
@@ -56,7 +56,7 @@ namespace heaterController {
     }
   }
 
-  void SetHeater(int8_t heatingStatus) {  
+  void SetHeater(unsigned int heatingStatus) {  
     switch (heatingStatus ) {
       case heaterController::HeatingMode::COOLING:
         TurnOffHeater( );
