@@ -11,7 +11,7 @@ try:
     import serial
 except ImportError:
     subprocess.call(["pip", "install", "serial"])
-    import serial.tools.list_ports
+    import serial
 
 from time import sleep
 def search_for_ports():
