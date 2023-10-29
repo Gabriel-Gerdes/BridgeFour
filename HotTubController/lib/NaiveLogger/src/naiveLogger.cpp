@@ -1,6 +1,11 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
+#ifndef make_digest
+    #include "../../../lib/MD5/src/MD5.h"
+//    #include "../../../lib/MD5/src/MD5.cpp"
+#endif
+
 namespace naiveLogger {
   // ----------------------------------------------------------------
   // Prototyping all functions
@@ -8,7 +13,7 @@ namespace naiveLogger {
   #if (DEBUGENABLED) // not ready to implement yet 
     #define macroOutArbitrary(...) outArbitraryReport(__VA_ARGS__, NULL)
   #endif
-  static String _fileCompiledInfo; // static to make it a variable scoped to this .cpp file
+  static char * _board_id; // static to make it a variable scoped to this .cpp file
   enum ReportMessage {
       MsgRoutine,
       MsgErrorDeadMan,
@@ -30,7 +35,7 @@ namespace naiveLogger {
     float emaSafetyTemperaturePreHeater,
     float emaSafetyTemperaturePostHeater
   ) ;
-  void outFileCompiledInfo() ;
+  void outBoard_Id() ;
 
   // ----------------------------------------------------------------
   // Defining Functions
@@ -75,7 +80,7 @@ namespace naiveLogger {
       // Using this method to allow for many parameters to the function: https://stackoverflow.com/a/9040731
       // ... supports up to 126 parameters (C compilers aren't required to support more than 127 parameters)  
       Serial.print("{");
-      Serial.print("\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+      Serial.print("\"BoardId\":\"");Serial.print(_board_id);Serial.print("\"");
       Serial.print(",\"RunCycles\":");Serial.print(_previousRunCycles);
       Serial.print(",\"Running\" : ");Serial.print((unsigned long)(millis()));
       Serial.print(",\"Status\":");Serial.print("\"AdHoc\"");
@@ -104,7 +109,7 @@ namespace naiveLogger {
   // json begining, and all the values that we allways log...
   bool outReportPrefix(unsigned long PreviousRunCycles, naiveLogger::ReportMessage customStatusMessage){
       Serial.print("{");
-      Serial.print("\"BoardId\":\"");Serial.print(_fileCompiledInfo);Serial.print("\"");
+      Serial.print("\"BoardId\":\"");Serial.print(_board_id);Serial.print("\"");
       Serial.print(",\"RunCycles\":");Serial.print(PreviousRunCycles);
       Serial.print(",\"Time\" : ");Serial.print((unsigned long)(millis()));
 
@@ -130,14 +135,30 @@ namespace naiveLogger {
   void outReportSuffix(){
     Serial.println("}");
   }
+void outBoard_Id() {
+  // unsigned char *FileInfo = (__FILE__); // filename
+  // FileInfo.concat("_");
+  // Compiled date, time, and board concatinated for a board ID...
+  char *FileInfo = (char *)__DATE__; // date file compiled
+  strncat(FileInfo, "_",sizeof(FileInfo) - 1);
+  strncat(FileInfo, __TIME__,sizeof(FileInfo) - 1);
+  strncat(FileInfo, "_",sizeof(FileInfo) - 1);
+  // each board type can be defined by the compile flags on build.
+  // https://community.platformio.org/t/can-i-check-the-board-platform-from-the-code/20353/
+  #ifdef ARDUINO_AVR_MEGA2560
+    strncat(FileInfo, "ARDUINO_AVR_MEGA2560",sizeof(FileInfo) - 1);
+  #endif
+  #ifdef ARDUINO_AVR_UNO
+    strncat(FileInfo, "ARDUINO_AVR_UNO",sizeof(FileInfo) - 1);
+  #endif
+  //generate the MD5 hash for our string
+  unsigned char* hash=MD5::make_hash(FileInfo);
+  //generate the digest (hex encoding) of our hash
+  char *md5str = MD5::make_digest(hash, 16);
+  
+  // save the hex encoded hash in our board ID variable
+  _board_id = md5str;
 
-  void outFileCompiledInfo() {
-    String FileInfo = (__FILE__); // filename
-    FileInfo.concat("_");
-    FileInfo.concat(__DATE__); // date file compiled
-    FileInfo.concat("_");
-    FileInfo.concat(__TIME__);  
-    _fileCompiledInfo = FileInfo ;
+  free(hash);
   }
-
 }

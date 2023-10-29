@@ -5,7 +5,7 @@
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
 #if REPORTINGLEVEL != 0
-  #ifndef outFileCompiledInfo 
+  #ifndef outBoard_Id 
     #include "../lib/NaiveLogger/src/naiveLogger.cpp"
   #endif
 #endif
@@ -58,7 +58,7 @@ void setup(void) {
   pinMode(Config::SLEEPSWITCH, INPUT_PULLUP);
   #if (REPORTINGLEVEL !=0)
     Serial.begin(Config::SEARIALBAUDRATE); 
-    naiveLogger::outFileCompiledInfo();
+    naiveLogger::outBoard_Id();
   #endif
   // initialize digital pin LED_BUILTIN as an output. Onboard LED and D13 for Uno/Duo/Mega (all but Gemma and MKR100)
   pinMode(LED_BUILTIN, OUTPUT);
@@ -231,3 +231,4 @@ void loop(void) {
     );
   #endif
 }
+
