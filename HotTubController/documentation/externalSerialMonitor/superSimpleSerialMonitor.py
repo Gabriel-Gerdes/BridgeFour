@@ -5,7 +5,8 @@
 #    pip install pyserial
 
 import subprocess
-subprocess.call(["pip", "install", "pyserial"])
+proc = subprocess.call(["pip", "install", "pyserial"])
+proc.wait()
 
 try:
     import serial
