@@ -6,7 +6,7 @@
 // Declare local functions
 void TurnOffHeater();
 void TurnOnHeater();
-void ThrowDeadMansSwitch(unsigned int &DeadmanSwitchStatus);
+void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus);
 
 void TurnOnHeater(){
       digitalWrite(Config::HEATERPIN,HIGH);

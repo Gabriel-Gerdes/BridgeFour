@@ -61,7 +61,6 @@ namespace naiveLogger {
         Serial.print(",\"PostHeatTemp\":\"");Serial.print(emaTemperaturePostHeater);Serial.print("\"");
         Serial.print(",\"PreSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePreHeater);Serial.print("\"");
         Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePostHeater);Serial.print("\"");
-        Serial.println("}");
         // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement? )
     }
     outReportSuffix();

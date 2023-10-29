@@ -16,7 +16,7 @@ namespace Config {
   const float SERIESRESISTOR = 10000; // installed resistor in parallel with the temp thermistor
   const int THERMISTORPINPREHEATER = A0;
   const int THERMISTORPINPOSTHEATER = A2;
-  const long SEARIALBAUDRATE = 1000000; 
+  const unsigned long SEARIALBAUDRATE = 1000000; 
   //long is an integer range from 0 to 4,294,967,295, but a unit16_t is only 0 to 65,535 
 
   const float alpha = 0.005f; 
