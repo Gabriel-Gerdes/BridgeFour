@@ -3,11 +3,17 @@
 # https://gist.github.com/maxwiese/db51e4a60d0c09727413e7f5f45af03f
 # Dependancies
 #    pip install pyserial
-#
-from time import sleep
-import serial
-import serial.tools.list_ports
 
+import subprocess
+subprocess.call(["pip", "install", "pyserial"])
+
+try:
+    import serial
+except ImportError:
+    subprocess.call(["pip", "install", "serial"])
+    import serial.tools.list_ports
+
+from time import sleep
 def search_for_ports():
     ports = list(serial.tools.list_ports.comports())
     return ports
