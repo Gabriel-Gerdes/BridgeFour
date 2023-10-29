@@ -2,19 +2,22 @@
 #include <Arduino.h>
 // These are in the global namespace so that they can be used as conditional compliation arguments
 #define DEBUG false
-#define REPORTINGLEVEL 0 
+#define REPORTINGLEVEL 1
+ 
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
 // 2 = frequent reporting (Durring safety check)
-// 3 = continious reporting (Every loop)
+// 3 = continious reporting (Every loop) over serial, slows cycles per action from 1000 to 100.
 
 namespace Config {
   // Our project configuration items are found here
   // Why are these assigned to macros instead of simply being constants?
-  const float SERIESRESISTOR = 12700; // installed resistor in parallel with the temp thermistor
-  const int8_t THERMISTORPINPREHEATER = A0;
-  const int8_t THERMISTORPINPOSTHEATER = A2;
+  const float SERIESRESISTOR = 10000; // installed resistor in parallel with the temp thermistor
+  const int THERMISTORPINPREHEATER = A0;
+  const int THERMISTORPINPOSTHEATER = A2;
+  const unsigned long SEARIALBAUDRATE = 1000000; 
+  //long is an integer range from 0 to 4,294,967,295, but a unit16_t is only 0 to 65,535 
 
   const float alpha = 0.005f; 
   const float alphaSafety = 0.01f; 
@@ -22,13 +25,15 @@ namespace Config {
   // EMA smooths our measured temp value to remove any noise from the signal.
   // A higher alpha value will result in a smoother EMA, but it will also be less 
   // responsive to changes in the measured resistance.
-  // currently we are calculating about 1 sample per millisecond (6.5 when grounded on one thermistor) from the thermistor 
+  // currently we are sampling at about 1 mhz (4 mhz if only running one thermistor) from the thermistor 
   // as we add complexity to the sketch we will be sampling at a slower rate, 
   // so it's important to continue to increase our alpha to maintain responsiveness, and test.
-  // [TODO] it should be possible to adjust the alpha so that it's responsive to some  time period
+
+  // [TODO] it is possible to calculate the alpha so that it's 
+  // responsive to N degree / N time period based on measured sample rate
 
   //These are just the defaults, eventually we may want to override these with a UI.
-  // as an enum we can't use decimal values, may need to switch to a struct
+  // also as an enum we can't use decimal values, may need to switch to a struct of floats
   enum TargetTempature  {
     //Sleep
     SleepHi = 85, // 24832 ohms  ,//85F
