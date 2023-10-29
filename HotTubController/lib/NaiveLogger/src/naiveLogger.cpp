@@ -95,15 +95,6 @@ namespace naiveLogger {
     }
   #endif
 
-  //  extern unsigned long _previousRunCycles;
-  //  extern unsigned long _previousRunTime;
-  //  extern float _emaTemperaturePreHeater;
-  //  extern float _emaTemperaturePostHeater;
-  //  extern float _emaSafetyTemperaturePostHeater;
-  //  extern float _emaSafetyTemperaturePreHeater;
-
-
-
   // ----------------------------------------------------------------
   // Logging/Reporting Functions
   // ----------------------------------------------------------------
