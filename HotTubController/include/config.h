@@ -4,7 +4,7 @@
 #define DEBUG false
 #define IGNOREDEADMANSWITCH false
 
-#define REPORTINGLEVEL 1
+#define REPORTINGFREQUENCY 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
