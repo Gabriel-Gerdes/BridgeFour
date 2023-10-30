@@ -13,15 +13,20 @@ namespace naiveLogger {
   #if (DEBUGENABLED) // not ready to implement yet 
     #define macroOutArbitrary(...) outArbitraryReport(__VA_ARGS__, NULL)
   #endif
-  static char * _board_id; // static to make it a variable scoped to this .cpp file
+
+  char * _board_id;
+
   enum ReportMessage {
       MsgRoutine,
       MsgErrorDeadMan,
       MsgErrorRebootPriorToOverflow,
       MsgAdHocReport
   };
+
   void outReportSuffix();
+
   bool outReportPrefix(unsigned long previousRunCycles, ReportMessage customStatusMessage);
+
   void outReport(
     ReportMessage customStatusMessage,
     float resistancePre, 
@@ -35,7 +40,6 @@ namespace naiveLogger {
     float emaSafetyTemperaturePreHeater,
     float emaSafetyTemperaturePostHeater
   ) ;
-  void outBoard_Id() ;
 
   // ----------------------------------------------------------------
   // Defining Functions
@@ -112,7 +116,6 @@ namespace naiveLogger {
       Serial.print("\"BoardId\":\"");Serial.print(_board_id);Serial.print("\"");
       Serial.print(",\"RunCycles\":");Serial.print(PreviousRunCycles);
       Serial.print(",\"Time\" : ");Serial.print((unsigned long)(millis()));
-
       switch (customStatusMessage) {
         case naiveLogger::ReportMessage::MsgRoutine:
           Serial.print(",\"Status\":");Serial.print("\"Routine\"");
@@ -135,30 +138,55 @@ namespace naiveLogger {
   void outReportSuffix(){
     Serial.println("}");
   }
-void outBoard_Id() {
-  // unsigned char *FileInfo = (__FILE__); // filename
-  // FileInfo.concat("_");
-  // Compiled date, time, and board concatinated for a board ID...
-  char *FileInfo = (char *)__DATE__; // date file compiled
-  strncat(FileInfo, "_",sizeof(FileInfo) - 1);
-  strncat(FileInfo, __TIME__,sizeof(FileInfo) - 1);
-  strncat(FileInfo, "_",sizeof(FileInfo) - 1);
-  // each board type can be defined by the compile flags on build.
-  // https://community.platformio.org/t/can-i-check-the-board-platform-from-the-code/20353/
-  #ifdef ARDUINO_AVR_MEGA2560
-    strncat(FileInfo, "ARDUINO_AVR_MEGA2560",sizeof(FileInfo) - 1);
-  #endif
-  #ifdef ARDUINO_AVR_UNO
-    strncat(FileInfo, "ARDUINO_AVR_UNO",sizeof(FileInfo) - 1);
-  #endif
-  //generate the MD5 hash for our string
-  unsigned char* hash=MD5::make_hash(FileInfo);
-  //generate the digest (hex encoding) of our hash
-  char *md5str = MD5::make_digest(hash, 16);
-  
-  // save the hex encoded hash in our board ID variable
-  _board_id = md5str;
 
-  free(hash);
+  // get board id information
+  void outBoard_Id() {
+    // Compiled date, time, and board concatinated for a board ID...
+    _board_id = (char *) malloc(0);
+    _board_id[0]='\0';
+    strcat(_board_id, __DATE__);
+    strcat(_board_id, "_");
+    strcat(_board_id, __TIME__);
+    strcat(_board_id, "_");
+    // each board type can be defined by the compile flags on build.
+    // https://community.platformio.org/t/can-i-check-the-board-platform-from-the-code/20353/
+    #ifdef ARDUINO_AVR_MEGA2560
+      strcat(_board_id, (char *)"ARDUINO_AVR_MEGA2560");
+    #endif
+    #ifdef ARDUINO_AVR_UNO
+      strcat(_board_id,"ARDUINO_AVR_UNO");
+    #endif
+    #ifdef ARDUINO_AVR_NANO
+      strcat(_board_id, "ARDUINO_AVR_NANO");
+    #endif
+
+    //generate the MD5 hash for our string
+    // unsigned char* hash=MD5::make_hash(_board_id);
+    // unsigned char* hash=MD5::make_hash(_board_id);
+  /*
+    //generate the digest (hex encoding) of our hash
+    char *md5str = MD5::make_digest(hash, 16);
+    Serial.println("md5str:");
+    Serial.println(md5str);
+
+    // save the hex encoded hash in our board ID variable
+    // just the first 12 chars of md5str;
+    strncpy(_board_id, md5str, hashLength); // first 32 chars, array elements 0-31
+    _board_id[32] = '\0'; // null termination string
+  
+  OR
+
+    int lenBoardId = strlen(_board_id);
+    Serial.println("_board_id:");
+    Serial.println(_board_id);
+    strncpy(_board_id, _board_id, lenBoardId);
+    _board_id[lenBoardId] = '\0';
+
+    Serial.println("_board_id:");
+    Serial.println(_board_id);
+    // free(_board_id);
+    Serial.println("_board_id after freefile:");
+    Serial.println(_board_id);
+    */
   }
 }
