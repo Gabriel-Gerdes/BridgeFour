@@ -127,33 +127,35 @@ void loop(void) {
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
-   // only do safety checks if Config::SAFETY_INTERVAL has passed
-    heaterController::SafetyCheck(
-      _emaSafetyTemperaturePreHeater,
-      _deadManSwitchStatus
-    );
-    // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
-    #if (REPORTINGLEVEL !=0)
-      if (_deadManSwitchStatus == false){
-        msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
-      };
-    #endif
-    #if (REPORTINGLEVEL == 2)
-      outReport(
-        msgToReport, 
-        measuredResistancePreHeater,
-        measuredResistancePostHeater,
-        temperaturePreHeater,
-        temperaturePostHeater,
-        _previousRunCycles,
-        _previousRunTime,
-        _emaTemperaturePreHeater,
-        _emaTemperaturePostHeater,
+  if (not IGNOREDEADMANSWITCH) {
+    if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
+    // only do safety checks if Config::SAFETY_INTERVAL has passed
+      heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater
-      );    
-    #endif
+        _deadManSwitchStatus
+      );
+      // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
+      #if (REPORTINGLEVEL !=0)
+        if (_deadManSwitchStatus == false){
+          msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
+        };
+      #endif
+      #if (REPORTINGLEVEL == 2)
+        outReport(
+          msgToReport, 
+          measuredResistancePreHeater,
+          measuredResistancePostHeater,
+          temperaturePreHeater,
+          temperaturePostHeater,
+          _previousRunCycles,
+          _previousRunTime,
+          _emaTemperaturePreHeater,
+          _emaTemperaturePostHeater,
+          _emaSafetyTemperaturePreHeater,
+          _emaSafetyTemperaturePostHeater
+        );    
+      #endif
+    }
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time

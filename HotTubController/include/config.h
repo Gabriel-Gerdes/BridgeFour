@@ -3,7 +3,7 @@
 // These are in the global namespace so that they can be used as conditional compliation arguments
 #define DEBUG false
 #define REPORTINGLEVEL 1
- 
+#define IGNOREDEADMANSWITCH true
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
