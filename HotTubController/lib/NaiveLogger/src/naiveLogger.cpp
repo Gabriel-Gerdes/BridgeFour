@@ -148,22 +148,28 @@ namespace naiveLogger {
     strcat(_board_id, "_");
     strcat(_board_id, __TIME__);
     strcat(_board_id, "_");
+    
     // each board type can be defined by the compile flags on build.
     // https://community.platformio.org/t/can-i-check-the-board-platform-from-the-code/20353/
     #ifdef ARDUINO_AVR_MEGA2560
-      strcat(_board_id, (char *)"ARDUINO_AVR_MEGA2560");
+      strcat(_board_id, (char *)"MEGA2560");
+    #elif ARDUINO_AVR_UNO
+      strcat(_board_id,"UNO");
+    #elif ARDUINO_AVR_NANO
+      strcat(_board_id, "NANO");
+    #elif ARDUINO_AVR_MICRO
+      strcat(_board_id,"MICRO");
+    #else
+      strcat(_board_id,"UNKNOWN");
     #endif
-    #ifdef ARDUINO_AVR_UNO
-      strcat(_board_id,"ARDUINO_AVR_UNO");
-    #endif
-    #ifdef ARDUINO_AVR_NANO
-      strcat(_board_id, "ARDUINO_AVR_NANO");
-    #endif
-
+/*
+// additional methods of getting a unique id? read some memory from eeprom
+    uint32_t uniqueID = eeprom_read_dword(0x00000000);
+    Serial.println("uniqueID:");
+    Serial.println(uniqueID);
+    
     //generate the MD5 hash for our string
-    // unsigned char* hash=MD5::make_hash(_board_id);
-    // unsigned char* hash=MD5::make_hash(_board_id);
-  /*
+    unsigned char* hash=MD5::make_hash(_board_id);
     //generate the digest (hex encoding) of our hash
     char *md5str = MD5::make_digest(hash, 16);
     Serial.println("md5str:");
@@ -171,22 +177,10 @@ namespace naiveLogger {
 
     // save the hex encoded hash in our board ID variable
     // just the first 12 chars of md5str;
-    strncpy(_board_id, md5str, hashLength); // first 32 chars, array elements 0-31
-    _board_id[32] = '\0'; // null termination string
+    // strncpy(_board_id, md5str, hashLength); // first 32 chars, array elements 0-31
+    //_board_id[32] = '\0'; // null termination string
   
-  OR
-
-    int lenBoardId = strlen(_board_id);
-    Serial.println("_board_id:");
-    Serial.println(_board_id);
-    strncpy(_board_id, _board_id, lenBoardId);
-    _board_id[lenBoardId] = '\0';
-
-    Serial.println("_board_id:");
-    Serial.println(_board_id);
-    // free(_board_id);
-    Serial.println("_board_id after freefile:");
-    Serial.println(_board_id);
-    */
+ */
+    
   }
 }

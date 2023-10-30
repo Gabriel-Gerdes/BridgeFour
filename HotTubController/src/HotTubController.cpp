@@ -127,17 +127,23 @@ void loop(void) {
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  if (not IGNOREDEADMANSWITCH) {
+  #if (not IGNOREDEADMANSWITCH)
     if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
       heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
         _deadManSwitchStatus
       );
+
+      // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
+      // or just switch the deadManSwitchStatus?
+      // To allow for resuming normal operations if the temperature has dropped back in range.
+
       // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
       #if (REPORTINGLEVEL !=0)
         if (_deadManSwitchStatus == false){
           msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
+      
         };
       #endif
       #if (REPORTINGLEVEL == 2)
@@ -155,7 +161,8 @@ void loop(void) {
           _emaSafetyTemperaturePostHeater
         );    
       #endif
-    }
+    #endif
+  
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
