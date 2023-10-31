@@ -88,7 +88,7 @@ def main():
         for port in ports:
             if args.exclude_port and port.device in args.exclude_port.split(','):
                 continue
-            filename = os.path.join(args.file_folder, "log_" + port.device + ".txt")
+            filename = os.path.join(args.file_folder, f"{port.device}_{port.vid}-{port.pid}-{port.serial_number}.txt")
             thread = SerialMonitor(port.device, args.baudrate, filename, args.stdout)
             threads.append(thread)
             thread.start()
