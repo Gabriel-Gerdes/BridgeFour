@@ -65,9 +65,12 @@ class SerialMonitor(Thread):
             print(f"Error monitoring {self.port}: {e}")
 
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    default_folder = os.path.join(script_dir, os.path.join("..", os.path.join("..", "logs")))
+    print(default_folder)
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--baudrate", type=int, default=1000000, help="Enter baudrate")
-    parser.add_argument("-f", "--file_folder", default=os.path.join(os.path.expanduser("~"),"com_logs"), help="Enter file folder")
+    parser.add_argument("-f", "--file_folder", default=default_folder, help="Enter file folder")
     parser.add_argument("-s", "--stdout", action="store_true", default = True, help="Pipe data to stdout")
     parser.add_argument(
         "-e",
