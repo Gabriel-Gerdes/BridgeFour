@@ -25,7 +25,7 @@ float degree_f_from_resistance(float resistance) {
     float PowerFunctionModel = 52.0f * powf(resistance / 55880.76f, 1.0f / -1.66f);
     float LogestModel = -42.3495 * (logf(4.81884*powf(10,-6)*(resistance+3000)));
     // finish outArbitraryReport and call that instead
-    #if (REPORTINGLEVEL !=0)
+    #if (REPORTINGFREQUENCY !=0)
       #if (DEBUGENABLED) // not ready to implement yet 
         outArbitraryReport("DEBUGMESSAGE:TEST");
         Serial.print("{DEBUGMESSAGE:");

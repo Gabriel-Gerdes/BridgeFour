@@ -4,7 +4,7 @@
 #include "../include/config.h"
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
-#if REPORTINGLEVEL != 0
+#if REPORTINGFREQUENCY != 0
   #ifndef outBoard_Id 
     #include "../lib/NaiveLogger/src/naiveLogger.cpp"
   #endif
@@ -56,7 +56,7 @@ void setup(void) {
   pinMode(Config::HEATERPIN, OUTPUT);
   pinMode(Config::SAFETYPIN, OUTPUT);
   pinMode(Config::SLEEPSWITCH, INPUT_PULLUP);
-  #if (REPORTINGLEVEL !=0)
+  #if (REPORTINGFREQUENCY !=0)
     Serial.begin(Config::SEARIALBAUDRATE); 
     naiveLogger::outBoard_Id();
   #endif
@@ -122,25 +122,31 @@ void loop(void) {
   // Perform saftey checks more frequently than actions
 
   // Initialize msgToReport as a variable of type enum ReportMessage
-  #if (REPORTINGLEVEL !=0)
+  #if (REPORTINGFREQUENCY !=0)
     naiveLogger::ReportMessage msgToReport;
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  if (not IGNOREDEADMANSWITCH) {
+  #if (not IGNOREDEADMANSWITCH)
     if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
       heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
         _deadManSwitchStatus
       );
+
+      // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
+      // or just switch the deadManSwitchStatus?
+      // To allow for resuming normal operations if the temperature has dropped back in range.
+
       // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
-      #if (REPORTINGLEVEL !=0)
+      #if (REPORTINGFREQUENCY !=0)
         if (_deadManSwitchStatus == false){
           msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
+      
         };
       #endif
-      #if (REPORTINGLEVEL == 2)
+      #if (REPORTINGFREQUENCY == 2)
         outReport(
           msgToReport, 
           measuredResistancePreHeater,
@@ -155,7 +161,8 @@ void loop(void) {
           _emaSafetyTemperaturePostHeater
         );    
       #endif
-    }
+    #endif
+  
   }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
@@ -169,12 +176,12 @@ void loop(void) {
       heaterController::OutGetTargetTemp(targetHi, targetLow);
       heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
       heaterController::SetHeater(_heatingStatusRequest);
-      #if (REPORTINGLEVEL != 0)
+      #if (REPORTINGFREQUENCY != 0)
         msgToReport=naiveLogger::ReportMessage::MsgRoutine;
       #endif
     }
     
-    #if (REPORTINGLEVEL == 1)
+    #if (REPORTINGFREQUENCY == 1)
       outReport(
         msgToReport, 
         measuredResistancePreHeater,
@@ -198,7 +205,7 @@ void loop(void) {
     _previousRunCycles++;
     if (_previousRunCycles > (unsigned long) (pow(2,8*sizeof(_previousRunCycles))-2)){
       //if _previousRunCycles is about to overflow then reset board
-      #if (REPORTINGLEVEL !=0)
+      #if (REPORTINGFREQUENCY !=0)
         msgToReport=naiveLogger::ReportMessage::MsgErrorRebootPriorToOverflow;
         outReport(
           msgToReport,
@@ -217,7 +224,7 @@ void loop(void) {
       resetFunc();
     }
   }
-  #if (REPORTINGLEVEL == 3)
+  #if (REPORTINGFREQUENCY == 3)
     outReport(
       msgToReport, 
       measuredResistancePreHeater,

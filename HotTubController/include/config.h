@@ -2,8 +2,9 @@
 #include <Arduino.h>
 // These are in the global namespace so that they can be used as conditional compliation arguments
 #define DEBUG false
-#define REPORTINGLEVEL 1
-#define IGNOREDEADMANSWITCH true
+#define IGNOREDEADMANSWITCH false
+
+#define REPORTINGFREQUENCY 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
@@ -19,8 +20,8 @@ namespace Config {
   const unsigned long SEARIALBAUDRATE = 1000000; 
   //long is an integer range from 0 to 4,294,967,295, but a unit16_t is only 0 to 65,535 
 
-  const float alpha = 0.005f; 
-  const float alphaSafety = 0.01f; 
+  const float alpha = 0.0005f; 
+  const float alphaSafety = 0.001f; 
   // Alpha is the smoothing factor for our Exponential Moving Average (ema) formula.
   // EMA smooths our measured temp value to remove any noise from the signal.
   // A higher alpha value will result in a smoother EMA, but it will also be less 
