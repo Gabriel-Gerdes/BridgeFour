@@ -1,10 +1,10 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
-#ifndef make_digest
-    #include "../../../lib/MD5/src/MD5.h"
+// #ifndef make_digest
+//   #include "../../../lib/MD5/src/MD5.h"
 //    #include "../../../lib/MD5/src/MD5.cpp"
-#endif
+// #endif
 
 namespace naiveLogger {
   // ----------------------------------------------------------------
