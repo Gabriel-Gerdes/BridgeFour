@@ -3,7 +3,7 @@
 # Original script modified from Super Simple Serial Monitor written in Python
 # https://gist.github.com/maxwiese/db51e4a60d0c09727413e7f5f45af03f
 # I (Jeremy Gerdes) had a lot of help on this script from: 
-# bard.google.com and chat.gpt 3.5
+# bard.google.com and chat.gpt 3.5 in October 2023
 # to make it threaded and process all com ports, and accept arguments.
 import os
 import argparse
