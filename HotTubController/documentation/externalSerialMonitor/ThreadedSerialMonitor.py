@@ -5,7 +5,6 @@
 # I (Jeremy Gerdes) had a lot of help on this script from: 
 # bard.google.com and chat.gpt 3.5
 # to make it threaded and process all com ports, and accept arguments.
-import subprocess
 import os
 import argparse
 import serial
@@ -22,7 +21,7 @@ def search_for_ports():
 # Function to print the names of available serial ports
 def print_ports(ports):
     for port in ports:
-        print(port.device)
+        print("Found Serial Port: " + port.device)
 
 # Function to write data to a file
 def write_to_file(data, filename):
@@ -65,36 +64,42 @@ class SerialMonitor(Thread):
         except Exception as e:
             print(f"Error monitoring {self.port}: {e}")
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--baudrate", type=int, default=1000000, help="Enter baudrate")
     parser.add_argument("-f", "--file_folder", default=os.path.join(os.path.expanduser("~"),"com_logs"), help="Enter file folder")
-    parser.add_argument("-s", "--stdout", action="store_true", help="Pipe data to stdout")
+    parser.add_argument("-s", "--stdout", action="store_true", default = True, help="Pipe data to stdout")
     parser.add_argument(
         "-e",
         "--exclude_port",
         help="Enter the port name to exclude from monitoring. Separate multiple ports to exclude with a comma without spaces (,). Example: 'COM3,COM7'"
     )
     args = parser.parse_args()
+    while True:
+        ports = search_for_ports()
 
-    ports = search_for_ports()
+        # Print the names of the serial ports that were found
+        print_ports(ports)
 
-    # Print the names of the serial ports that were found
-    print_ports(ports)
+        # Create the file folder if it doesn't exist
+        create_folder_if_missing(args.file_folder)
+        
+        threads = []
+        for port in ports:
+            if args.exclude_port and port.device in args.exclude_port.split(','):
+                continue
+            filename = os.path.join(args.file_folder, "log_" + port.device + ".txt")
+            thread = SerialMonitor(port.device, args.baudrate, filename, args.stdout)
+            threads.append(thread)
+            thread.start()
 
-    # Create the file folder if it doesn't exist
-    create_folder_if_missing(args.file_folder)
-    
-    threads = []
-    for port in ports:
-        if args.exclude_port and port.device in args.exclude_port.split(','):
-            continue
-        filename = os.path.join(args.file_folder, "log_" + port.device + ".txt")
-        thread = SerialMonitor(port.device, args.baudrate, filename, args.stdout)
-        threads.append(thread)
-        thread.start()
+        for thread in threads:
+            thread.join()
 
-    for thread in threads:
-        thread.join()
+        print('\nConnection lost')
 
-    print('\nConnection lost')
+        # Sleep for a period before scanning again for available serial ports
+        sleep(10)  # You can adjust the interval (in seconds) as needed
+
+if __name__ == "__main__":
+        main()
