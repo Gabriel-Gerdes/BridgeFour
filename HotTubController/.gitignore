@@ -4,5 +4,5 @@
 .vscode/launch.json
 .vscode/ipch
 #Exclude logs directory
-logs/*
+logs/
 compile_commands.json
