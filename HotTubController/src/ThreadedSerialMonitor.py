@@ -5,6 +5,10 @@
 # I (Jeremy Gerdes) had a lot of help on this script from: 
 # bard.google.com and chat.gpt 3.5 in October 2023
 # to make it threaded and process all com ports, and accept arguments.
+
+# Dependancies are:
+# pip install pyserial
+
 import os
 import argparse
 import serial
@@ -65,12 +69,17 @@ class SerialMonitor(Thread):
             print(f"Error monitoring {self.port}: {e}")
 
 def main():
+    #if os.name == "posix":
+    #    # Linux current script directory
+    #    script_dir = os.path.dirname(os.path.realpath(__file__))
+    #else:
+    #    # windows current script directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_folder = os.path.join(script_dir, os.path.join("..", os.path.join("..", "logs")))
-    print(default_folder)
+    default_folder = os.path.realpath(os.path.join(script_dir, os.path.join("..", os.path.join("..", "logs"))))
+    print(f"Script Path, script_dir:{script_dir}\n default_folder:{default_folder}")
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--baudrate", type=int, default=1000000, help="Enter baudrate")
-    parser.add_argument("-f", "--file_folder", default=default_folder, help="Enter file folder")
+    parser.add_argument("-f", "--file_folder", default="EMPTY", help="Enter file folder")
     parser.add_argument("-s", "--stdout", action="store_true", default = True, help="Pipe data to stdout")
     parser.add_argument(
         "-e",
@@ -85,13 +94,20 @@ def main():
         print_ports(ports)
 
         # Create the file folder if it doesn't exist
-        create_folder_if_missing(args.file_folder)
-        
+        if args.file_folder == "EMPTY":
+            args.file_folder=default_folder
+            print(f"assigned args.file_folder to {default_folder} = {args.file_folder}")
+        create_folder_if_missing(args.file_folder)        
         threads = []
         for port in ports:
             if args.exclude_port and port.device in args.exclude_port.split(','):
                 continue
-            filename = os.path.join(args.file_folder, f"{port.device}_{port.vid}-{port.pid}-{port.serial_number}.txt")
+            if os.name == "posix":
+                # Linux port.device begins with /dev/ that needs to be stripped off.
+                filename = os.path.join(args.file_folder, f"{port.device[5:]}_{port.vid}-{port.pid}-{port.serial_number}.txt")
+            else:
+                filename = os.path.join(args.file_folder, f"{port.device}_{port.vid}-{port.pid}-{port.serial_number}.txt")
+            print(f"Planned log file location, filename:{filename}")
             thread = SerialMonitor(port.device, args.baudrate, filename, args.stdout)
             threads.append(thread)
             thread.start()

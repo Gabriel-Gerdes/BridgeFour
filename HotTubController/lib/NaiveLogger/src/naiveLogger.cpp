@@ -1,10 +1,6 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
-// #ifndef make_digest
-//   #include "../../../lib/MD5/src/MD5.h"
-//    #include "../../../lib/MD5/src/MD5.cpp"
-// #endif
 
 namespace naiveLogger {
   // ----------------------------------------------------------------
@@ -162,25 +158,5 @@ namespace naiveLogger {
     #else
       strcat(_board_id,"UNKNOWN");
     #endif
-/*
-// additional methods of getting a unique id? read some memory from eeprom
-    uint32_t uniqueID = eeprom_read_dword(0x00000000);
-    Serial.println("uniqueID:");
-    Serial.println(uniqueID);
-    
-    //generate the MD5 hash for our string
-    unsigned char* hash=MD5::make_hash(_board_id);
-    //generate the digest (hex encoding) of our hash
-    char *md5str = MD5::make_digest(hash, 16);
-    Serial.println("md5str:");
-    Serial.println(md5str);
-
-    // save the hex encoded hash in our board ID variable
-    // just the first 12 chars of md5str;
-    // strncpy(_board_id, md5str, hashLength); // first 32 chars, array elements 0-31
-    //_board_id[32] = '\0'; // null termination string
-  
- */
-    
   }
 }
