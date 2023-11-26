@@ -26,12 +26,13 @@ def print_ports(ports):
 # Function to replace invalid filename characters
 # Linux port.device begins with /dev/ that needs to be stripped off or replaced.
 # os.path.join will ignore the first arguments if the later arg begins with a root slash /
+ # '/\*<>:|?"'
 def remove_invalid_filename_chars(filename, replaced_char="_"):
-    for ch in ['\\','/','*','<','>',':','|','?','^']:
+    filename=filename.encode("utf-8").decode('utf-8','ignore')
+    for ch in ['\\','/','*','<','>',':','|','?','^','"']:
         if ch in filename:
             filename = filename.replace(ch,replaced_char)
-            remove_invalid_filename_chars = filename
-    return remove_invalid_filename_chars
+    return filename
 
 # Function to write data to a file
 def write_to_file(data, filename):
