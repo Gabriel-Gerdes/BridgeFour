@@ -28,7 +28,6 @@ def print_ports(ports):
 # os.path.join will ignore the first arguments if the later arg begins with a root slash /
  # '/\*<>:|?"'
 def remove_invalid_filename_chars(filename, replaced_char="_"):
-    filename=filename.encode("utf-8").decode('utf-8','ignore')
     for ch in ['\\','/','*','<','>',':','|','?','^','"']:
         if ch in filename:
             filename = filename.replace(ch,replaced_char)
