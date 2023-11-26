@@ -64,9 +64,7 @@ class SerialMonitor(Thread):
                         break
                     # Write data to the file
                     f.write(data)
-                    # Print data to stdout            # Linux port.device begins with /dev/ that needs to be stripped off or replaced.
-            # os.path.join will ignore the first arguments if the later arg begins with a root slash /
-
+                    # Print data to stdout            
                     if self.pipe_to_stdout:
                         sys.stdout.buffer.write(data)
                         sys.stdout.flush()
