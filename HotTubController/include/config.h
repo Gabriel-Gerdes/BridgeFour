@@ -1,10 +1,10 @@
 #pragma once
 #include <Arduino.h>
 // These are in the global namespace so that they can be used as conditional compliation arguments
-#define DEBUG false
-#define IGNOREDEADMANSWITCH false
+#define DEBUG true // false
+#define IGNOREDEADMANSWITCH false // false
 
-#define REPORTINGFREQUENCY 1
+#define REPORTINGFREQUENCY 2 // 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)

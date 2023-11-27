@@ -72,7 +72,7 @@ class SerialMonitor(Thread):
             print(f"Error monitoring {self.port}: {e}")
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_folder = os.path.realpath(os.path.join(script_dir, os.path.join("..", os.path.join("..", "logs"))))
+    default_folder = os.path.realpath(os.path.join(script_dir,  os.path.join("..", "logs")))
     print(f"Script Path, script_dir:{script_dir}\n default_folder:{default_folder}")
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--baudrate", type=int, default=1000000, help="Enter baudrate")
@@ -98,7 +98,7 @@ def main():
         for port in ports:
             if args.exclude_port and port.device in args.exclude_port.split(','):
                 continue
-            deviceFileName = remove_invalid_filename_chars(f"{port.device}_{port.vid}-{port.pid}-{port.serial_number}.txt")
+            deviceFileName = remove_invalid_filename_chars(f"{port.device}_{port.vid}-{port.pid}-{port.serial_number}.csv")
             filename = os.path.join(args.file_folder, deviceFileName)
             print(f"Planned log file location, filename:{filename}")
             thread = SerialMonitor(port.device, args.baudrate, filename, args.stdout)

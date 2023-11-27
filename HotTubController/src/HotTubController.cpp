@@ -129,7 +129,7 @@ void loop(void) {
   
   #if (not IGNOREDEADMANSWITCH)
     if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
-    // only do safety checks if Config::SAFETY_INTERVAL has passed
+      // only do safety checks if Config::SAFETY_INTERVAL has passed
       heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
         _deadManSwitchStatus
@@ -143,7 +143,6 @@ void loop(void) {
       #if (REPORTINGFREQUENCY !=0)
         if (_deadManSwitchStatus == false){
           msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
-      
         };
       #endif
       #if (REPORTINGFREQUENCY == 2)
@@ -159,11 +158,10 @@ void loop(void) {
           _emaTemperaturePostHeater,
           _emaSafetyTemperaturePreHeater,
           _emaSafetyTemperaturePostHeater
-        );    
+        );
       #endif
-    #endif
-  
-  }
+    }
+  #endif
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
