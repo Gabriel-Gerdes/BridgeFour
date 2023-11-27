@@ -1,7 +1,9 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
-
+#ifndef SleepHi
+  #include "../../../include/config.h"
+#endif
 namespace naiveLogger {
   // ----------------------------------------------------------------
   // Prototyping all functions
@@ -112,9 +114,9 @@ namespace naiveLogger {
       Serial.print("\"BoardId\":\"");Serial.print(_board_id);Serial.print("\"");
       Serial.print(",\"RunCycles\":");Serial.print(PreviousRunCycles);
       Serial.print(",\"Time\" : ");Serial.print((unsigned long)(millis()));
-      Serial.print(",\"HeaterPin\" : ");Serial.print(Config::HEATERPIN);
-      Serial.print(",\"SleepSwitch\" : ");Serial.print(Config::SLEEPSWITCH);
-      Serial.print(",\"SafetyPin\" : ");Serial.print(Config::SAFETYPIN);
+      Serial.print(",\"HeaterPin\" : ");Serial.print(digitalRead(Config::HEATERPIN));
+      Serial.print(",\"SleepSwitch\" : ");Serial.print(digitalRead(Config::SLEEPSWITCH));
+      Serial.print(",\"SafetyPin\" : ");Serial.print(digitalRead(Config::SAFETYPIN));
       switch (customStatusMessage) {
         case naiveLogger::ReportMessage::MsgRoutine:
           Serial.print(",\"Status\":");Serial.print("\"Routine\"");
