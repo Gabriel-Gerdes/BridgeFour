@@ -14,7 +14,7 @@
 namespace Config {
   // Our project configuration items are found here
   // Why are these assigned to macros instead of simply being constants?
-  const float SERIESRESISTOR = 100000; // installed resistor in parallel with the temp thermistor
+  const float SERIESRESISTOR = 10000; // installed resistor in parallel with the temp thermistor
   const int THERMISTORPINPREHEATER = A0;
   const int THERMISTORPINPOSTHEATER = A2;
   const unsigned long SEARIALBAUDRATE = 1000000; 
