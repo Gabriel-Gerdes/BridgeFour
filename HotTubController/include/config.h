@@ -1,10 +1,10 @@
 #pragma once
 #include <Arduino.h>
 // These are in the global namespace so that they can be used as conditional compliation arguments
-#define DEBUG true // false
+#define DEBUG false // false
 #define IGNOREDEADMANSWITCH true // false
 
-#define REPORTINGFREQUENCY 2 // 1
+#define REPORTINGFREQUENCY 1 // 1
 //currently reporting levels are:
 // 0 = no reporting
 // 1 = typical reporting (Durring action)
@@ -14,7 +14,7 @@
 namespace Config {
   // Our project configuration items are found here
   // Why are these assigned to macros instead of simply being constants?
-  const float SERIESRESISTOR = 10000; // installed resistor in parallel with the temp thermistor
+  const float SERIESRESISTOR = 100000; // installed resistor in parallel with the temp thermistor
   const int THERMISTORPINPREHEATER = A0;
   const int THERMISTORPINPOSTHEATER = A2;
   const unsigned long SEARIALBAUDRATE = 1000000; 
