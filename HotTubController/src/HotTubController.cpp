@@ -1,6 +1,9 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
+#ifndef digitalReadFast
+  #include <digitalWriteFast.h>
+#endif
 #include "../include/config.h"
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
@@ -76,8 +79,9 @@ void setup(void) {
   //_emaTemperaturePostHeater = 0.0f;
   //_emaSafetyTemperaturePreHeater = 0.0f;
   //_emaSafetyTemperaturePostHeater = 0.0f;
-  // Get intial resistance values on initialization, 
+  // Get intial resistance values on initialization, analogReadFast
   // so we don't have to wait for the value to ramp up to valid values from 0
+
   _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR));
   _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
@@ -164,8 +168,6 @@ void loop(void) {
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
-
     // only take actions if ACTION_INTERVAL has passed
     float targetHi;
     float targetLow;

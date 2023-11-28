@@ -1,4 +1,7 @@
 #include <Arduino.h>
+#ifndef digitalWriteFast
+  #include <digitalWriteFast.h>
+#endif
 #ifndef SleepHi
   #include "../../../include/config.h"
 #endif
@@ -9,15 +12,15 @@ void TurnOnHeater();
 void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus);
 
 void TurnOnHeater(){
-      digitalWrite(Config::HEATERPIN,HIGH);
+  digitalWriteFast(Config::HEATERPIN,HIGH);
 }
 
 void TurnOffHeater(){
-   digitalWrite(Config::HEATERPIN,LOW);
+  digitalWriteFast(Config::HEATERPIN,LOW);
 }
 void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus) {
   DeadmanSwitchStatus = false; //assign variable value by ref
-  digitalWrite( Config::SAFETYPIN, DeadmanSwitchStatus);
+  digitalWriteFast( Config::SAFETYPIN, DeadmanSwitchStatus);
   TurnOffHeater();
 }
 namespace heaterController {
@@ -55,6 +58,8 @@ namespace heaterController {
   }
 
   void SetHeater(unsigned int heatingStatus) {
+    digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
+
     switch (heatingStatus ) {
       case heaterController::HeatingMode::COOLING:
         TurnOffHeater( );
