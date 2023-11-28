@@ -1,6 +1,9 @@
 #ifndef Serial
   #include <Arduino.h>
 #endif
+#ifndef digitalReadFast
+  #include <digitalWriteFast.h>
+#endif
 #include "../include/config.h"
 #include "../lib/HottubCalculations/src/calculations.cpp"
 #include "../lib/HottubHeaterController/src/heaterControl.cpp"
@@ -9,7 +12,6 @@
     #include "../lib/NaiveLogger/src/naiveLogger.cpp"
   #endif
 #endif
-
 // Now using patformio instead of the arduino ide / arduino vscode extention
 // Converting from .ino to a .cpp source file as C++ file...
 // This means that we need to declare each custom function see:
@@ -29,7 +31,7 @@ unsigned long _previousRunTime ;
 unsigned long _previousRunCycles ;
 
 bool _isSleep;
-bool _deadManSwitchStatus;
+bool _deadManSwitchOff;
 
 float _emaTemperaturePreHeater;
 float _emaTemperaturePostHeater;
@@ -68,7 +70,7 @@ void setup(void) {
   _previousRunCycles = 0;
 
   _isSleep = false;
-  _deadManSwitchStatus = true;
+  _deadManSwitchOff = true;
 
   _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
 
@@ -77,8 +79,9 @@ void setup(void) {
   //_emaTemperaturePostHeater = 0.0f;
   //_emaSafetyTemperaturePreHeater = 0.0f;
   //_emaSafetyTemperaturePostHeater = 0.0f;
-  // Get intial resistance values on initialization, 
+  // Get intial resistance values on initialization, analogReadFast
   // so we don't have to wait for the value to ramp up to valid values from 0
+
   _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR));
   _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
@@ -127,12 +130,12 @@ void loop(void) {
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  #if (not IGNOREDEADMANSWITCH)
+  #if (!IGNOREDEADMANSWITCH) // not ignore dead man switch
     if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
       // only do safety checks if Config::SAFETY_INTERVAL has passed
       heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
-        _deadManSwitchStatus
+        _deadManSwitchOff
       );
 
       // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
@@ -141,7 +144,7 @@ void loop(void) {
 
       // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
       #if (REPORTINGFREQUENCY !=0)
-        if (_deadManSwitchStatus == false){
+        if (_deadManSwitchOff == false){
           msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
         };
       #endif
@@ -165,22 +168,20 @@ void loop(void) {
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
     // only take actions if ACTION_INTERVAL has passed
-    if (_deadManSwitchStatus != false) {
-      float targetHi;
-      float targetLow;
-      // sets what our hi and low should be
-      heaterController::OutGetTargetTemp(targetHi, targetLow);
-      heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
+    float targetHi;
+    float targetLow;
+    // sets what our hi and low should be
+    heaterController::OutGetTargetTemp(targetHi, targetLow);
+    heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
+    if (_deadManSwitchOff) {
       heaterController::SetHeater(_heatingStatusRequest);
-      #if (REPORTINGFREQUENCY != 0)
-        msgToReport=naiveLogger::ReportMessage::MsgRoutine;
-      #endif
     }
-    
+    #if (REPORTINGFREQUENCY != 0)
+      msgToReport=naiveLogger::ReportMessage::MsgRoutine;
+    #endif
     #if (REPORTINGFREQUENCY == 1)
-      outReport(
+      naiveLogger::outReport(
         msgToReport, 
         measuredResistancePreHeater,
         measuredResistancePostHeater,
@@ -234,8 +235,8 @@ void loop(void) {
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
         _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater
+        _emaSafe  #endif
+tyTemperaturePostHeater
     );
   #endif
 }
-
