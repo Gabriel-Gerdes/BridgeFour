@@ -3,7 +3,6 @@
 // These are in the global namespace so that they can be used as conditional compliation arguments
 #define DEBUG false // false
 #define IGNOREDEADMANSWITCH false // false
-
 #define REPORTINGFREQUENCY 1 // 1
 //currently reporting levels are:
 // 0 = no reporting
@@ -41,8 +40,8 @@ namespace Config {
     SleepLow = 80, // 27931 ohms, //80F
 
     //Active Heating
-    Hi = 101, // 17247 ohms, //101F
-    Low = 98, //20649, //95F
+    Hi = 102, // 17247 ohms, //101F
+    Low = 100, //20649, //95F
 
     //Safety Max
     SafetyMaxTemperature = 108 // 13589 ohms //111F
