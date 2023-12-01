@@ -7,9 +7,9 @@
 #endif
 
 // Declare local functions
-void TurnOffHeater();
-void TurnOnHeater();
-void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus);
+// void TurnOffHeater();
+// void TurnOnHeater();
+// void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus);
 
 void TurnOnHeater(){
   digitalWriteFast(Config::HEATERPIN,HIGH);
@@ -18,24 +18,26 @@ void TurnOnHeater(){
 void TurnOffHeater(){
   digitalWriteFast(Config::HEATERPIN,LOW);
 }
+
 void ThrowDeadMansSwitch(bool &DeadmanSwitchStatus) {
   DeadmanSwitchStatus = false; //assign variable value by ref
-  digitalWriteFast( Config::SAFETYPIN, DeadmanSwitchStatus);
-  TurnOffHeater();
+  digitalWriteFast(Config::SAFETYPIN, DeadmanSwitchStatus);
 }
+
 namespace heaterController {
   //----------------------------------------------------------------
   // Function declarations
   //----------------------------------------------------------------
-  void OutGetTargetTemp(float &targetHi, float &targetLow);
-  void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus);
-  void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest, float currentTemperature); 
-  void SetHeater(unsigned int heatingStatus);
+  // void OutGetTargetTemp(float &targetHi, float &targetLow);
+  // void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus);
+  // void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest, float currentTemperature); 
+  // void SetHeater(unsigned int heatingStatus);
   enum HeatingMode {
       NEITHER,
       HEATING,
       COOLING
   };
+
   // Exposed Functions
   void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus) {
   if (measuredTemperature > Config::SafetyMaxTemperature)
@@ -58,10 +60,9 @@ namespace heaterController {
   }
 
   void SetHeater(unsigned int heatingStatus) {
-    digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN)); // Toggle the LED on or off, just a i'm alive indicator
-
     switch (heatingStatus ) {
       case heaterController::HeatingMode::COOLING:
+        digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN)); 
         TurnOffHeater( );
         break;
       case heaterController::HeatingMode::HEATING:
@@ -69,9 +70,6 @@ namespace heaterController {
         break;
       case heaterController::HeatingMode::NEITHER:
         //do nothing
-        break;
-      default:
-        TurnOffHeater( );
         break;
     }
   }
