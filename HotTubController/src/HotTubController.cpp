@@ -26,12 +26,12 @@
 // passing this information arround, could use pointers? 
 // normally we just use unsigned int and long, the arduino uno is a 8-bit machine, 
 // so using sized ints to save space. https://www.gnu.org/software/libc/manual/html_node/Integers.html
-unsigned int _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
+unsigned int _heatingStatusRequest ;
 unsigned long _previousRunTime ;
 unsigned long _previousRunCycles ;
 
 bool _isSleep;
-bool _deadManSwitchOff;
+bool _deadManSwitchHoldConnected;
 
 float _emaTemperaturePreHeater;
 float _emaTemperaturePostHeater;
@@ -70,10 +70,10 @@ void setup(void) {
   _previousRunCycles = 0;
 
   _isSleep = false;
-  _deadManSwitchOff = true;
+  // deadman switch is a held open normally closed relay that enables the rest of the curcuit.
+  _deadManSwitchHoldConnected = true;
 
   _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
-
 
   //_emaTemperaturePreHeater = 0.0f;
   //_emaTemperaturePostHeater = 0.0f;
@@ -135,7 +135,7 @@ void loop(void) {
       // only do safety checks if Config::SAFETY_INTERVAL has passed
       heaterController::SafetyCheck(
         _emaSafetyTemperaturePreHeater,
-        _deadManSwitchOff
+        _deadManSwitchHoldConnected
       );
 
       // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
@@ -144,7 +144,7 @@ void loop(void) {
 
       // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
       #if (REPORTINGFREQUENCY !=0)
-        if (_deadManSwitchOff == false){
+        if (_deadManSwitchHoldConnected == false){
           msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
         };
       #endif
@@ -160,7 +160,8 @@ void loop(void) {
           _emaTemperaturePreHeater,
           _emaTemperaturePostHeater,
           _emaSafetyTemperaturePreHeater,
-          _emaSafetyTemperaturePostHeater
+          _emaSafetyTemperaturePostHeater,
+          _heatingStatusRequest
         );
       #endif
     }
@@ -174,7 +175,24 @@ void loop(void) {
     // sets what our hi and low should be
     heaterController::OutGetTargetTemp(targetHi, targetLow);
     heaterController::SetHeatingStatus(targetHi, targetLow,_heatingStatusRequest,_emaTemperaturePreHeater);
-    if (_deadManSwitchOff) {
+
+    #if (REPORTINGFREQUENCY == 1)
+      naiveLogger::outReport(
+        msgToReport, 
+        measuredResistancePreHeater,
+        measuredResistancePostHeater,
+        temperaturePreHeater,
+        temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
+        _emaSafetyTemperaturePreHeater,
+        _emaSafetyTemperaturePostHeater,
+        _heatingStatusRequest
+      );
+    #endif
+    if (_deadManSwitchHoldConnected) {
       heaterController::SetHeater(_heatingStatusRequest);
     }
     #if (REPORTINGFREQUENCY != 0)
@@ -192,7 +210,8 @@ void loop(void) {
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
         _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater
+        _emaSafetyTemperaturePostHeater,
+        _heatingStatusRequest
       );
     #endif
 
@@ -217,7 +236,8 @@ void loop(void) {
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
         _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater
+        _emaSafetyTemperaturePostHeater,
+        _heatingStatusRequest
         );
       #endif
       resetFunc();
@@ -229,14 +249,14 @@ void loop(void) {
       measuredResistancePreHeater,
       measuredResistancePostHeater,
       temperaturePreHeater,
-      temperaturePostHeater,
+      temperature_heatingStatusRequestPostHeater,
         _previousRunCycles,
         _previousRunTime,
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
         _emaSafetyTemperaturePreHeater,
-        _emaSafe  #endif
-tyTemperaturePostHeater
+        _emaSafetyTemperaturePostHeater,
+        _heatingStatusRequest
     );
   #endif
 }

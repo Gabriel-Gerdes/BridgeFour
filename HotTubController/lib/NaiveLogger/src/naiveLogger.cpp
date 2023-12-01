@@ -39,7 +39,8 @@ namespace naiveLogger {
     float emaTemperaturePreHeater,
     float emaTemperaturePostHeater,
     float emaSafetyTemperaturePreHeater,
-    float emaSafetyTemperaturePostHeater
+    float emaSafetyTemperaturePostHeater,
+    unsigned int _heatingStatusRequest
   ) ;
 
   // ----------------------------------------------------------------
@@ -57,7 +58,8 @@ namespace naiveLogger {
     float emaTemperaturePreHeater,
     float emaTemperaturePostHeater,
     float emaSafetyTemperaturePreHeater,
-    float emaSafetyTemperaturePostHeater
+    float emaSafetyTemperaturePostHeater,
+    unsigned int _heatingStatusRequest
   ){
     if (outReportPrefix(previousRunCycles, customStatusMessage)) {
         // If outReportSuffix is false then we don't write any of these attributes.
@@ -71,6 +73,8 @@ namespace naiveLogger {
         Serial.print(",\"PostHeatTemp\":\"");Serial.print(emaTemperaturePostHeater);Serial.print("\"");
         Serial.print(",\"PreSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePreHeater);Serial.print("\"");
         Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePostHeater);Serial.print("\"");
+        Serial.print(",\"HeatingStatusRequest\":\"");Serial.print(_heatingStatusRequest);Serial.print("\"");
+        
         // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement? )
     }
     outReportSuffix();

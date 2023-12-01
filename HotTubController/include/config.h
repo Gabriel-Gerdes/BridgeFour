@@ -36,15 +36,15 @@ namespace Config {
   // also as an enum we can't use decimal values, may need to switch to a struct of floats
   enum TargetTempature  {
     //Sleep
-    SleepHi = 85, // 24832 ohms  ,//85F
-    SleepLow = 80, // 27931 ohms, //80F
+    SleepHi = 99, // 24832 ohms  ,//85F
+    SleepLow = 96, // 27931 ohms, //80F
 
     //Active Heating
     Hi = 102, // 17247 ohms, //101F
     Low = 100, //20649, //95F
 
     //Safety Max
-    SafetyMaxTemperature = 108 // 13589 ohms //111F
+    SafetyMaxTemperature = 108 // 13589 ohms
     //TODO: List
     //Add summer winter temp
   };
