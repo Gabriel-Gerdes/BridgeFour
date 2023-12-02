@@ -65,6 +65,7 @@ void setup(void) {
   // initialize digital pin LED_BUILTIN as an output. Onboard LED and D13 for Uno/Duo/Mega (all but Gemma and MKR100)
   pinMode(LED_BUILTIN, OUTPUT);
 
+ 
   // initalize global variables
   _previousRunTime = 0;
   _previousRunCycles = 0;
@@ -86,6 +87,15 @@ void setup(void) {
   _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
   _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
+  digitalWrite(Config::SAFETYPIN, true);
+   heaterController::SafetyCheck(
+    _emaSafetyTemperaturePreHeater,
+    _deadManSwitchHoldConnected
+  );
+   heaterController::SafetyCheck(
+    _emaTemperaturePostHeater,
+    _deadManSwitchHoldConnected
+  );
 }
 
 //Exectuion Loop
@@ -130,42 +140,40 @@ void loop(void) {
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
   
-  #if (!IGNOREDEADMANSWITCH) // not ignore dead man switch
-    if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
-      // only do safety checks if Config::SAFETY_INTERVAL has passed
-      heaterController::SafetyCheck(
+  if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
+    // only do safety checks if Config::SAFETY_INTERVAL has passed
+    heaterController::SafetyCheck(
+      _emaSafetyTemperaturePreHeater,
+      _deadManSwitchHoldConnected
+    );
+
+    // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
+    // or just switch the deadManSwitchStatus?
+    // To allow for resuming normal operations if the temperature has dropped back in range.
+
+    // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
+    #if (REPORTINGFREQUENCY !=0)
+      if (_deadManSwitchHoldConnected == false){
+        msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
+      };
+    #endif
+    #if (REPORTINGFREQUENCY == 2)
+      outReport(
+        msgToReport, 
+        measuredResistancePreHeater,
+        measuredResistancePostHeater,
+        temperaturePreHeater,
+        temperaturePostHeater,
+        _previousRunCycles,
+        _previousRunTime,
+        _emaTemperaturePreHeater,
+        _emaTemperaturePostHeater,
         _emaSafetyTemperaturePreHeater,
-        _deadManSwitchHoldConnected
+        _emaSafetyTemperaturePostHeater,
+        _heatingStatusRequest
       );
-
-      // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
-      // or just switch the deadManSwitchStatus?
-      // To allow for resuming normal operations if the temperature has dropped back in range.
-
-      // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
-      #if (REPORTINGFREQUENCY !=0)
-        if (_deadManSwitchHoldConnected == false){
-          msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
-        };
-      #endif
-      #if (REPORTINGFREQUENCY == 2)
-        outReport(
-          msgToReport, 
-          measuredResistancePreHeater,
-          measuredResistancePostHeater,
-          temperaturePreHeater,
-          temperaturePostHeater,
-          _previousRunCycles,
-          _previousRunTime,
-          _emaTemperaturePreHeater,
-          _emaTemperaturePostHeater,
-          _emaSafetyTemperaturePreHeater,
-          _emaSafetyTemperaturePostHeater,
-          _heatingStatusRequest
-        );
-      #endif
-    }
-  #endif
+    #endif
+  }
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
