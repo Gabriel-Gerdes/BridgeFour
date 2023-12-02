@@ -50,7 +50,6 @@ namespace Config {
 
   const long ACTION_INTERVAL = 1000;
   const long SAFETY_INTERVAL = 100;
-DeadmanSwitchStatus
   //White Analog
   const int HEATERPIN = 2;
   const int SAFETYPIN = 3;

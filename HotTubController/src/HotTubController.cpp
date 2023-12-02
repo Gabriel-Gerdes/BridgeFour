@@ -142,10 +142,15 @@ void loop(void) {
   
   if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
-    heaterController::SafetyCheck(
-      _emaSafetyTemperaturePreHeater,
-      _deadManSwitchHoldConnected
-    );
+   heaterController::SafetyCheck(
+    _emaSafetyTemperaturePreHeater,
+    _deadManSwitchHoldConnected
+  );
+   heaterController::SafetyCheck(
+    _emaTemperaturePostHeater,
+    _deadManSwitchHoldConnected
+  );
+
 
     // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
     // or just switch the deadManSwitchStatus?

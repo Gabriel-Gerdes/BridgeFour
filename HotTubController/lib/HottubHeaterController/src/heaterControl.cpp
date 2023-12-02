@@ -38,14 +38,6 @@ namespace heaterController {
       COOLING
   };
 
-  // Exposed Functions
-  void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus) {
-  if (measuredTemperature > Config::SafetyMaxTemperature)
-    {
-      ThrowDeadMansSwitch(DeadmanSwitchStatus);
-    }
-  }
-
   void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest , float currentTemperature ) {
     if (currentTemperature < targetLow){
       // set to heat
@@ -71,6 +63,15 @@ namespace heaterController {
       case heaterController::HeatingMode::NEITHER:
         //do nothing
         break;
+    }
+  }
+
+  // Exposed Functions
+  void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus) {
+  if (measuredTemperature > Config::SafetyMaxTemperature)
+    {
+      ThrowDeadMansSwitch(DeadmanSwitchStatus);
+      SetHeater(heaterController::HeatingMode::COOLING);
     }
   }
 
