@@ -35,24 +35,22 @@ namespace Config {
   // also as an enum we can't use decimal values, may need to switch to a struct of floats
   enum TargetTempature  {
     //Sleep
-    SleepHi = 100, // 24832 ohms  ,//85F
-    SleepLow = 98, // 27931 ohms, //80F
+    SleepHi = 88, // 24832 ohms  ,//85F
+    SleepLow = 86, // 27931 ohms, //80F
 
     //Active Heating
     Hi = 102, // 17247 ohms, //101F
     Low = 100, //20649, //95F
 
     //Safety Max
-    SafetyMaxTemperature = 110 // 13589 ohms
+    SafetyMaxTemperature = 108 // 13589 ohms
     //TODO: List
     //Add summer winter temp
   };
 
   const long ACTION_INTERVAL = 1000;
   const long SAFETY_INTERVAL = 100;
-
-  //Green Ground
-  //Red 5V
+DeadmanSwitchStatus
   //White Analog
   const int HEATERPIN = 2;
   const int SAFETYPIN = 3;
