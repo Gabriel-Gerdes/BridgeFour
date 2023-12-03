@@ -53,5 +53,6 @@ namespace Config {
   //White Analog
   const int HEATERPIN = 2;
   const int SAFETYPIN = 3;
+  const int RUNINDICATORPIN = 4;
   const int SLEEPSWITCH = 7;  
  }                                                                                                                                                                                                                                                                                     

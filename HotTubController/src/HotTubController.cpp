@@ -4,9 +4,15 @@
 #ifndef digitalReadFast
   #include <digitalWriteFast.h>
 #endif
-#include "../include/config.h"
-#include "../lib/HottubCalculations/src/calculations.cpp"
-#include "../lib/HottubHeaterController/src/heaterControl.cpp"
+#ifndef SleepHi
+  #include "../include/config.h"
+#endif
+#ifndef CalculateExponentialMovingAverage
+  #include "../lib/HottubCalculations/src/calculations.cpp"
+#endif
+#ifndef ThrowDeadMansSwitch
+  #include "../lib/HottubHeaterController/src/heaterControl.cpp"
+#endif
 #if REPORTINGFREQUENCY != 0
   #ifndef outBoard_Id 
     #include "../lib/NaiveLogger/src/naiveLogger.cpp"
@@ -57,6 +63,7 @@ void setup(void) {
 
   pinMode(Config::HEATERPIN, OUTPUT);
   pinMode(Config::SAFETYPIN, OUTPUT);
+  pinMode(Config::RUNINDICATORPIN, OUTPUT);
   pinMode(Config::SLEEPSWITCH, INPUT_PULLUP);
   #if (REPORTINGFREQUENCY !=0)
     Serial.begin(Config::SEARIALBAUDRATE); 
@@ -64,16 +71,13 @@ void setup(void) {
   #endif
   // initialize digital pin LED_BUILTIN as an output. Onboard LED and D13 for Uno/Duo/Mega (all but Gemma and MKR100)
   pinMode(LED_BUILTIN, OUTPUT);
-
- 
+  digitalWriteFast(Config::RUNINDICATORPIN, !digitalReadFast(Config::RUNINDICATORPIN)); 
   // initalize global variables
   _previousRunTime = 0;
   _previousRunCycles = 0;
-
   _isSleep = false;
   // deadman switch is a held open normally closed relay that enables the rest of the curcuit.
   _deadManSwitchHoldConnected = true;
-
   _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
 
   //_emaTemperaturePreHeater = 0.0f;
@@ -87,7 +91,7 @@ void setup(void) {
   _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
   _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
-  digitalWrite(Config::SAFETYPIN, true);
+  digitalWriteFast(Config::SAFETYPIN, true);
    heaterController::SafetyCheck(
     _emaSafetyTemperaturePreHeater,
     _deadManSwitchHoldConnected
@@ -155,7 +159,7 @@ void loop(void) {
     // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
     // or just switch the deadManSwitchStatus?
     // To allow for resuming normal operations if the temperature has dropped back in range.
-
+  digitalWriteFast(Config::SAFETYPIN, true);
     // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
     #if (REPORTINGFREQUENCY !=0)
       if (_deadManSwitchHoldConnected == false){
@@ -182,6 +186,10 @@ void loop(void) {
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
+    // toggle run/saftey indicator if saftey pin has switched
+    if (!digitalReadFast(Config::SAFETYPIN)){
+      digitalWriteFast(Config::RUNINDICATORPIN, !digitalReadFast(Config::RUNINDICATORPIN)); 
+    }
     // only take actions if ACTION_INTERVAL has passed
     float targetHi;
     float targetLow;
@@ -258,18 +266,18 @@ void loop(void) {
   }
   #if (REPORTINGFREQUENCY == 3)
     outReport(
-      msgToReport, 
+      msgToReport,
       measuredResistancePreHeater,
       measuredResistancePostHeater,
       temperaturePreHeater,
       temperature_heatingStatusRequestPostHeater,
-        _previousRunCycles,
-        _previousRunTime,
-        _emaTemperaturePreHeater,
-        _emaTemperaturePostHeater,
-        _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater,
-        _heatingStatusRequest
+      _previousRunCycles,
+      _previousRunTime,
+      _emaTemperaturePreHeater,
+      _emaTemperaturePostHeater,
+      _emaSafetyTemperaturePreHeater,
+      _emaSafetyTemperaturePostHeater,
+      _heatingStatusRequest
     );
   #endif
 }
