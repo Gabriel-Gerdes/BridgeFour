@@ -60,7 +60,6 @@ void(* resetFunc) (void) = 0;
 void setup(void) {
   // Check serial rates at: https://wormfood.net/avrbaudcalc.php
   // Uno typically has a 16Mhz crystal, could use conditional compilation arguments here to optimize for specific boards.
-
   pinMode(Config::HEATERPIN, OUTPUT);
   pinMode(Config::SAFETYPIN, OUTPUT);
   pinMode(Config::RUNINDICATORPIN, OUTPUT);
@@ -79,20 +78,13 @@ void setup(void) {
   // deadman switch is a held open normally closed relay that enables the rest of the curcuit.
   _deadManSwitchHoldConnected = true;
   _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
-
-  //_emaTemperaturePreHeater = 0.0f;
-  //_emaTemperaturePostHeater = 0.0f;
-  //_emaSafetyTemperaturePreHeater = 0.0f;
-  //_emaSafetyTemperaturePostHeater = 0.0f;
   // Get intial resistance values on initialization, analogReadFast
-  // so we don't have to wait for the value to ramp up to valid values from 0
-
   _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR));
   _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
   _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
   _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
   digitalWriteFast(Config::SAFETYPIN, true);
-   heaterController::SafetyCheck(
+  heaterController::SafetyCheck(
     _emaSafetyTemperaturePreHeater,
     _deadManSwitchHoldConnected
   );
@@ -116,37 +108,31 @@ void loop(void) {
   //    might need to capture a min / max value between action cycles, and if the diff exceeds some threshold, throw deadman switch
   float measuredResistancePreHeater = CalculateResistance(readingPreHeater,Config::SERIESRESISTOR);
   float measuredResistancePostHeater = CalculateResistance(readingPostHeater,Config::SERIESRESISTOR);
-  
   float temperaturePreHeater = degree_f_from_resistance(measuredResistancePreHeater);
   float temperaturePostHeater = degree_f_from_resistance(measuredResistancePostHeater);
 
    // Calculate the EMA of the measured resistance.
   CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePreHeater, temperaturePreHeater);
   CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePostHeater, temperaturePostHeater);
-  // _emaSafetyTemperaturePreHeater is much more responsive than _emaTemperaturePreHeater
+  // _emaSafetyTemperaturePreHeater should be more responsive than _emaTemperaturePreHeater
   CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
   CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
-  //long currentRunTime = millis(); 
-  
   long currentRunTime = millis(); 
   // The number of milliseconds since board's last reset
   // Unsigned Long is 32 bit (long) and overflows after 4,294,967,295  (2^32-1)
   // millis overflows ever 49.8 days
   // an unsigned negitive value is a positive value
-  //for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
+  // for testing time overflows by using micros() as it oveflowed in 70 minutes showed no issues durring overflow as of 2023-10-15   
   // no need for this level of granularity -> micros();
-
   // Perform saftey checks more frequently than actions
-
   // Initialize msgToReport as a variable of type enum ReportMessage
   #if (REPORTINGFREQUENCY !=0)
     naiveLogger::ReportMessage msgToReport;
     msgToReport = naiveLogger::ReportMessage::MsgRoutine;
   #endif
-  
   if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
-   heaterController::SafetyCheck(
+  heaterController::SafetyCheck(
     _emaSafetyTemperaturePreHeater,
     _deadManSwitchHoldConnected
   );
@@ -154,12 +140,6 @@ void loop(void) {
     _emaTemperaturePostHeater,
     _deadManSwitchHoldConnected
   );
-
-
-    // [TODO] after some time of the deadman switch being thrown should we do a soft reset?
-    // or just switch the deadManSwitchStatus?
-    // To allow for resuming normal operations if the temperature has dropped back in range.
-  digitalWriteFast(Config::SAFETYPIN, true);
     // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
     #if (REPORTINGFREQUENCY !=0)
       if (_deadManSwitchHoldConnected == false){
@@ -186,6 +166,8 @@ void loop(void) {
 
   // Perform actions based on calculations / state at ACTION_INTERVAL time
   if ((long)(currentRunTime - _previousRunTime) > (Config::ACTION_INTERVAL-1)) {
+    // I'm alive  indicator...
+    digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN)); 
     // toggle run/saftey indicator if saftey pin has switched
     if (!digitalReadFast(Config::SAFETYPIN)){
       digitalWriteFast(Config::RUNINDICATORPIN, !digitalReadFast(Config::RUNINDICATORPIN)); 
@@ -252,13 +234,13 @@ void loop(void) {
           measuredResistancePostHeater,
           temperaturePreHeater,
           temperaturePostHeater,
-        _previousRunCycles,
-        _previousRunTime,
-        _emaTemperaturePreHeater,
-        _emaTemperaturePostHeater,
-        _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater,
-        _heatingStatusRequest
+          _previousRunCycles,
+          _previousRunTime,
+          _emaTemperaturePreHeater,
+          _emaTemperaturePostHeater,
+          _emaSafetyTemperaturePreHeater,
+          _emaSafetyTemperaturePostHeater,
+          _heatingStatusRequest
         );
       #endif
       resetFunc();
