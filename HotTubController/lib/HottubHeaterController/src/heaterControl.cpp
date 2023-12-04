@@ -29,7 +29,7 @@ namespace heaterController {
   // Function declarations
   //----------------------------------------------------------------
   // void OutGetTargetTemp(float &targetHi, float &targetLow);
-  // void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus);
+  // void SafetyCheck(float measuredValue, bool &DeadmanSwitchStatus);
   // void SetHeatingStatus(float targetHi, float targetLow, unsigned int &HeatStatusRequest, float currentTemperature); 
   // void SetHeater(unsigned int heatingStatus);
   enum HeatingMode {
@@ -67,8 +67,9 @@ namespace heaterController {
   }
 
   // Exposed Functions
-  void SafetyCheck(float measuredTemperature, bool &DeadmanSwitchStatus) {
-  if (measuredTemperature > Config::SafetyMaxTemperature)
+  void SafetyCheck(float measuredValue, bool &DeadmanSwitchStatus) {
+  // Use < for resistance, and > for Temperature values
+  if (measuredValue < Config::SafetyMax) 
     {
       ThrowDeadMansSwitch(DeadmanSwitchStatus);
       SetHeater(heaterController::HeatingMode::COOLING);
@@ -76,7 +77,7 @@ namespace heaterController {
   }
 
   void OutGetTargetTemp(float &targetHi, float &targetLow) {   // & passing variables by ref
-    bool isSleep = digitalRead(Config::SLEEPSWITCH); 
+    bool isSleep = digitalReadFast(Config::SLEEPSWITCH); 
     if (!isSleep) {
       targetHi = Config::Hi;
       targetLow = Config::Low;

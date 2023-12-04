@@ -38,8 +38,8 @@ namespace naiveLogger {
     long previousRunTime,
     float emaTemperaturePreHeater,
     float emaTemperaturePostHeater,
-    float emaSafetyTemperaturePreHeater,
-    float emaSafetyTemperaturePostHeater,
+    float emaSafetyResistancePreHeater,
+    float emaSafetyResistancePostHeater,
     unsigned int _heatingStatusRequest
   ) ;
 
@@ -57,8 +57,8 @@ namespace naiveLogger {
     long previousRunTime,
     float emaTemperaturePreHeater,
     float emaTemperaturePostHeater,
-    float emaSafetyTemperaturePreHeater,
-    float emaSafetyTemperaturePostHeater,
+    float emaSafetyResistancePreHeater,
+    float emaSafetyResistancePostHeater,
     unsigned int _heatingStatusRequest
   ){
     if (outReportPrefix(previousRunCycles, customStatusMessage)) {
@@ -71,8 +71,8 @@ namespace naiveLogger {
         Serial.print(",\"PostHeatOhms\":\"");Serial.print(resistancePost);Serial.print("\"");
         Serial.print(",\"PreHeatEmaTemp\":\"");Serial.print(emaTemperaturePreHeater);Serial.print("\"");
         Serial.print(",\"PostHeatTemp\":\"");Serial.print(emaTemperaturePostHeater);Serial.print("\"");
-        Serial.print(",\"PreSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePreHeater);Serial.print("\"");
-        Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyTemperaturePostHeater);Serial.print("\"");
+        Serial.print(",\"PreSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyResistancePreHeater);Serial.print("\"");
+        Serial.print(",\"PostSafetyHeatEmaTemp\":\"");Serial.print(emaSafetyResistancePostHeater);Serial.print("\"");
         Serial.print(",\"HeatingStatusRequest\":\"");Serial.print(_heatingStatusRequest);Serial.print("\"");
         
         // TODO: Add write out to log (sd card or wifi ftp, define at compile time with conditional compilation arguement? )
