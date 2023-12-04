@@ -94,7 +94,7 @@ void setup(void) {
     _deadManSwitchHoldConnected
   );
    heaterController::SafetyCheck(
-    _emaTemperaturePostHeater,
+    _emaSafetyPostResistance,
     _deadManSwitchHoldConnected
   );
 }
@@ -137,14 +137,14 @@ void loop(void) {
   #endif
   if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
-  heaterController::SafetyCheck(
-    _emaSafetyPreResistance,
-    _deadManSwitchHoldConnected
-  );
-   heaterController::SafetyCheck(
-    _emaTemperaturePostHeater,
-    _deadManSwitchHoldConnected
-  );
+    heaterController::SafetyCheck(
+      _emaSafetyPreResistance,
+      _deadManSwitchHoldConnected
+    );
+    heaterController::SafetyCheck(
+      _emaSafetyPostResistance,
+      _deadManSwitchHoldConnected
+    );
     // only after install -> heaterController::SafetyCheck(_emaSafetyPostResistance);  
     #if (REPORTINGFREQUENCY !=0)
       if (_deadManSwitchHoldConnected == false){
