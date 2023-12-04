@@ -39,10 +39,13 @@ unsigned long _previousRunCycles ;
 bool _isSleep;
 bool _deadManSwitchHoldConnected;
 
+
+float _emaResistancePreHeater;
+float _emaResistancePostHeater;
 float _emaTemperaturePreHeater;
 float _emaTemperaturePostHeater;
-float _emaSafetyTemperaturePreHeater;
-float _emaSafetyTemperaturePostHeater;
+float _emaSafetyPreResistance;
+float _emaSafetyPostResistance;
 // consider using a struct for all the temperature measures related to a themistor...
 //struct TempratureMeasures {
 //  float Resistance;
@@ -78,14 +81,16 @@ void setup(void) {
   // deadman switch is a held open normally closed relay that enables the rest of the curcuit.
   _deadManSwitchHoldConnected = true;
   _heatingStatusRequest = heaterController::HeatingMode::NEITHER;
-  // Get intial resistance values on initialization, analogReadFast
-  _emaTemperaturePreHeater = degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR));
-  _emaTemperaturePostHeater =  degree_f_from_resistance(CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR));
-  _emaSafetyTemperaturePreHeater = _emaTemperaturePreHeater;
-  _emaSafetyTemperaturePostHeater = _emaTemperaturePostHeater;
+  // Get intial resistance and temperature values on initialization, analogRead
+  _emaResistancePreHeater = CalculateResistance(analogRead(Config::THERMISTORPINPREHEATER),Config::SERIESRESISTOR);
+  _emaResistancePostHeater = CalculateResistance(analogRead(Config::THERMISTORPINPOSTHEATER),Config::SERIESRESISTOR);
+  _emaSafetyPreResistance = _emaResistancePreHeater;
+  _emaSafetyPostResistance = _emaResistancePostHeater;
+  _emaTemperaturePreHeater = degree_f_from_resistance(_emaResistancePreHeater);
+  _emaTemperaturePostHeater =  degree_f_from_resistance(_emaResistancePostHeater);
   digitalWriteFast(Config::SAFETYPIN, true);
   heaterController::SafetyCheck(
-    _emaSafetyTemperaturePreHeater,
+    _emaSafetyPreResistance,
     _deadManSwitchHoldConnected
   );
    heaterController::SafetyCheck(
@@ -114,9 +119,9 @@ void loop(void) {
    // Calculate the EMA of the measured resistance.
   CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePreHeater, temperaturePreHeater);
   CalculateExponentialMovingAverage(Config::alpha,_emaTemperaturePostHeater, temperaturePostHeater);
-  // _emaSafetyTemperaturePreHeater should be more responsive than _emaTemperaturePreHeater
-  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePreHeater, temperaturePreHeater);
-  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyTemperaturePostHeater, temperaturePostHeater);
+  // _emaSafetyPreResistance should be more responsive than _emaTemperaturePreHeater
+  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyPreResistance, measuredResistancePreHeater);
+  CalculateExponentialMovingAverage(Config::alphaSafety,_emaSafetyPostResistance, measuredResistancePostHeater);
   long currentRunTime = millis(); 
   // The number of milliseconds since board's last reset
   // Unsigned Long is 32 bit (long) and overflows after 4,294,967,295  (2^32-1)
@@ -133,14 +138,14 @@ void loop(void) {
   if ((long)(currentRunTime - _previousRunTime) > (Config::SAFETY_INTERVAL-1)) {
     // only do safety checks if Config::SAFETY_INTERVAL has passed
   heaterController::SafetyCheck(
-    _emaSafetyTemperaturePreHeater,
+    _emaSafetyPreResistance,
     _deadManSwitchHoldConnected
   );
    heaterController::SafetyCheck(
     _emaTemperaturePostHeater,
     _deadManSwitchHoldConnected
   );
-    // only after install -> heaterController::SafetyCheck(_emaSafetyTemperaturePostHeater);  
+    // only after install -> heaterController::SafetyCheck(_emaSafetyPostResistance);  
     #if (REPORTINGFREQUENCY !=0)
       if (_deadManSwitchHoldConnected == false){
         msgToReport = naiveLogger::ReportMessage::MsgErrorDeadMan;
@@ -157,8 +162,8 @@ void loop(void) {
         _previousRunTime,
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
-        _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater,
+        _emaSafetyPreResistance,
+        _emaSafetyPostResistance,
         _heatingStatusRequest
       );
     #endif
@@ -190,8 +195,8 @@ void loop(void) {
         _previousRunTime,
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
-        _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater,
+        _emaSafetyPreResistance,
+        _emaSafetyPostResistance,
         _heatingStatusRequest
       );
     #endif
@@ -212,8 +217,8 @@ void loop(void) {
         _previousRunTime,
         _emaTemperaturePreHeater,
         _emaTemperaturePostHeater,
-        _emaSafetyTemperaturePreHeater,
-        _emaSafetyTemperaturePostHeater,
+        _emaSafetyPreResistance,
+        _emaSafetyPostResistance,
         _heatingStatusRequest
       );
     #endif
@@ -238,8 +243,8 @@ void loop(void) {
           _previousRunTime,
           _emaTemperaturePreHeater,
           _emaTemperaturePostHeater,
-          _emaSafetyTemperaturePreHeater,
-          _emaSafetyTemperaturePostHeater,
+          _emaSafetyPreResistance,
+          _emaSafetyPostResistance,
           _heatingStatusRequest
         );
       #endif
@@ -257,8 +262,8 @@ void loop(void) {
       _previousRunTime,
       _emaTemperaturePreHeater,
       _emaTemperaturePostHeater,
-      _emaSafetyTemperaturePreHeater,
-      _emaSafetyTemperaturePostHeater,
+      _emaSafetyPreResistance,
+      _emaSafetyPostResistance,
       _heatingStatusRequest
     );
   #endif

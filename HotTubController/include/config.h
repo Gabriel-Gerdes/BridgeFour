@@ -36,16 +36,16 @@ namespace Config {
   // also as an enum we can't use decimal values, may need to use ohms, or switch to another type, like struct of floats
   enum TargetTempature  {
     //Sleep heating range
-    SleepHi = 96,    // 19225 ohms            // 24832 ohms    // 85 F
-    SleepLow = 98,   // 15450 ohms            // 27931 ohms    // 80 F
+    SleepHi = 96,     // 19225 ohms            
+    SleepLow = 98,    // 15450 ohms            
     //Active Heating range
-    Hi = 103,        // 16850 ohms            // 17247 ohms    // 101 F
-    Low = 101,       // 17350 ohms            // 20649 ohms    // 95 F
+    Hi = 103,         // 16850 ohms            
+    Low = 101,        // 17350 ohms            
     //Safety Max
-    SafetyMaxTemperature = 110   // 13589 ohms    // 108 F
+    SafetyMax = 14710 //110 F  //14710 ohms
   };
   const long ACTION_INTERVAL = 1000; // in milliseconds
-  const long SAFETY_INTERVAL = 100; // in milliseconds
+  const long SAFETY_INTERVAL = 100;  // in milliseconds
   // Pin assignments
   const int HEATERPIN = 2;
   const int SAFETYPIN = 3;
